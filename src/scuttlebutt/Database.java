@@ -56,7 +56,8 @@ public class Database implements Cloneable {
 	 * @param value
 	 */
 	public void updateSelf(int self, int  key, int value) {
-		updateState(self, key, value, ++currTime);
+		currTime++;
+		updateState(self, key, value, currTime);
 	}
 	
 	public int[] getDigest() {
@@ -103,11 +104,7 @@ public class Database implements Cloneable {
 	 */
 	public void reconcile(DeltaSet deltaSet) {
 		while (deltaSet.next()) {
-			int node = deltaSet.nextNode();
-			int key = deltaSet.nextKey();
-			values[node][key] = deltaSet.nextValue();
-			timestamps[node][key] = deltaSet.nextTimestamp();
-			maxTime[node] = Integer.max(maxTime[node], deltaSet.nextTimestamp());
+			updateState(deltaSet.nextNode(),deltaSet.nextKey(), deltaSet.nextValue(), deltaSet.nextTimestamp());
 		}
 	}
 }
