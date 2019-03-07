@@ -2,9 +2,9 @@
 SIZE 128
 
 # parameters of periodic execution
-CYCLES 180
+CYCLES 141
 # 1 cycle lasts 1000 ms = 1 s
-CYCLE 1000
+CYCLE 1
 
 # parameters of message transfer
 # delay values here are relative to cycle length, in percentage,
@@ -53,6 +53,7 @@ init.sch.protocol scut
 control.app scuttlebutt.Application
 control.app.protocol scut
 control.app.maxsize 10
+control.app.mtu 100
 # One update every 4 cycles, initially
 # Then it doubles update frequency
 control.app.step CYCLE
