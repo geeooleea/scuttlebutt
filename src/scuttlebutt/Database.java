@@ -27,6 +27,7 @@ public class Database implements Cloneable {
 	 * @param k Number of keys for each state in the database
 	 */
 	public Database(int k) {
+		System.out.println("Database size = " +  N + "*" + k);
 		this.K = k;
 		values = new int[N][K];
 		timestamps = new int[N][K];

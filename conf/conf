@@ -1,9 +1,10 @@
 # network size
-SIZE 10
+SIZE 128
 
 # parameters of periodic execution
-CYCLES 100
-CYCLE SIZE*10000
+CYCLES 180
+# 1 cycle lasts 1000 ms = 1 s
+CYCLE 1000
 
 # parameters of message transfer
 # delay values here are relative to cycle length, in percentage,
@@ -34,7 +35,7 @@ protocol.scut scuttlebutt.Scuttlebutt
 protocol.scut.linkable lnk
 protocol.scut.transport tr
 protocol.scut.order breadth
-protocol.scut.mtu 100
+# protocol.scut.mtu 1024
 protocol.scut.step CYCLE
 
 init.rndlink WireKOut
@@ -43,7 +44,7 @@ init.rndlink.protocol lnk
 
 init.dbinit scuttlebutt.DatabaseInit
 init.dbinit.protocol scut
-init.dbinit.file db
+init.dbinit.keys 64
 
 init.sch CDScheduler
 init.sch.protocol scut
