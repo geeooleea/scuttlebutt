@@ -41,6 +41,8 @@ public class DatabaseInit implements Control {
 
 		Database prototype = new Database(k);
 		Application.setK(k);
+		ScuttlebuttObserver.setK(k);
+		Scuttlebutt.setK(k);
 		for (int i=0; i<N; i++) {
 			((Scuttlebutt)Network.get(i).getProtocol(pid)).setDatabase((Database)prototype.clone());
 		}

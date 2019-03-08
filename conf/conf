@@ -3,7 +3,7 @@ SIZE 128
 
 # parameters of periodic execution
 CYCLES 141
-# 1 cycle lasts 1000 ms = 1 s
+# 1 cycle lasts 1 s
 CYCLE 1
 
 # parameters of message transfer
@@ -35,7 +35,6 @@ protocol.scut scuttlebutt.Scuttlebutt
 protocol.scut.linkable lnk
 protocol.scut.transport tr
 protocol.scut.order breadth
-# protocol.scut.mtu 1024
 protocol.scut.step CYCLE
 
 init.rndlink WireKOut

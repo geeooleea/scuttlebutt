@@ -22,7 +22,7 @@ public class DeltaSet {
 	 * Number of entries for a given node. Maybe to be used in
 	 * scuttlebutt#scuttledepth
 	 */
-	int entryNum[];
+	private int entryNum[];
 
 	/**
 	 * Number of entries in the deltaSet.

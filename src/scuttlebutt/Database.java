@@ -27,7 +27,6 @@ public class Database implements Cloneable {
 	 * @param k Number of keys for each state in the database
 	 */
 	public Database(int k) {
-		System.out.println("Database size = " +  N + "*" + k);
 		this.K = k;
 		values = new int[N][K];
 		timestamps = new int[N][K];
@@ -76,6 +75,19 @@ public class Database implements Cloneable {
 	int[] getState(int id) {
 		return timestamps[id];
 	}
+
+	/**
+	 * Updates this databases reconciling the differences received from another
+	 * peer. Independent of reconciliation mechanism, simply update (p,k,v,n)
+	 * tuples.
+	 *
+	 * @param deltaSet
+	 */
+	public void reconcile(DeltaSet deltaSet) {
+		while (deltaSet.next()) {
+			updateState(deltaSet.nextNode(),deltaSet.nextKey(), deltaSet.nextValue(), deltaSet.nextTimestamp());
+		}
+	}
 	
 	@Override
 	public Object clone() {
@@ -94,18 +106,5 @@ public class Database implements Cloneable {
 			Logger.getLogger(Database.class.getName()).log(Level.SEVERE, null, ex);
 		}
 		return db;
-	}
-	
-	/**
-	 * Updates this databases reconciling the differences received from another
-	 * peer. Independent of reconciliation mechanism, simply update (p,k,v,n)
-	 * tuples.
-	 *
-	 * @param deltaSet
-	 */
-	public void reconcile(DeltaSet deltaSet) {
-		while (deltaSet.next()) {
-			updateState(deltaSet.nextNode(),deltaSet.nextKey(), deltaSet.nextValue(), deltaSet.nextTimestamp());
-		}
 	}
 }

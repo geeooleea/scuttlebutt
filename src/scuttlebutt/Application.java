@@ -39,13 +39,14 @@ public class Application implements Control {
 
 	private static int maxs;
 	private static int mins;
+
 	public Application(String prefix) {
 		pid = Configuration.getPid(prefix + "." + PAR_PROT);
 		maxs = Configuration.getInt(prefix + "." + PAR_MAX_SIZE);
 		System.err.println("----> Maximum update size: " + maxs);
 		mins = Configuration.getInt(prefix + "." + PAR_MIN_SIZE, 0);
 		MTU = Configuration.getInt(prefix + "." + PAR_MTU);
-
+		System.err.println("MTU = " + MTU);
 	}
 
 	@Override
@@ -56,6 +57,8 @@ public class Application implements Control {
 		// Leave hard coded for now, considering config parameters
 		if (time >= 15*1000) {
 			Scuttlebutt.MTU = this.MTU;
+		} else {
+			Scuttlebutt.MTU = Integer.MAX_VALUE;
 		}
 
 		if (time < 25) {
