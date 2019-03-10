@@ -15,8 +15,8 @@ import peersim.core.Node;
 import peersim.edsim.EDProtocol;
 import peersim.edsim.NextCycleEvent;
 import peersim.transport.Transport;
-
-import java.util.Arrays;
+import java.util.Comparator;
+import java.util.PriorityQueue;
 
 /**
  *
@@ -43,7 +43,7 @@ public class Scuttlebutt extends NextCycleEvent implements EDProtocol, CDProtoco
 	 * Maximum size of a scuttlebutt message. If no value is specified then a
 	 * message can contain at most Integer.MAX_VALUE bytes.
 	 */
-	protected static int MTU;
+	protected static int MTU = Integer.MAX_VALUE;
 
 	/**
 	 * 0 for scuttle-depth (default), 1 for scuttle-breadth. Values for
@@ -267,58 +267,53 @@ public class Scuttlebutt extends NextCycleEvent implements EDProtocol, CDProtoco
 	}
 
 	private DeltaSet scuttleBreadth(int[] digest) {
-		int values[][] = new int[N][K];
-		int timestamps[][] = new int[N][K];
+		PriorityQueue<Delta> deltas[] = new PriorityQueue[N];
+		DeltaComparator cmp = new DeltaComparator();
 
 		// Obtain all deltas that are more recent than the peer's maximum timestamp in the digest
 		for (int i = 0; i < N; i++) {
+			deltas[i] = new PriorityQueue<>(K,cmp);
 			for (int j = 0; j < K; j++) {
 				int time = db.getTimestamp(i, j);
 				if (digest[i] >= 0 && digest[i] < time) {
-					values[i][j] = db.getValue(i, j);
-					timestamps[i][j] = time;
-				} else {
-					timestamps[i][j] = -1;
-					values[i][j] = -1;
+					deltas[i].add(new Delta(j,time,db.getValue(i,j)));
 				}
 			}
 		}
-		int size = 0;
-		DeltaSet deltaSet = new DeltaSet(N, K);
-		boolean moreDeltas = true;
 
-		while (moreDeltas) {
-			moreDeltas = false;
+		boolean empty = false;
+		DeltaSet deltaSet = new DeltaSet(N,K);
 
-			int ranked[] = new int[N];
-			for (int i = 0; i < N; i++) ranked[i] = -1; // Initialize to -1, 0 might be a valid key
-
-			for (int i = 0; i < N; i++) {
-				int min = Integer.MAX_VALUE;
-				for (int j = 0; j < K; j++) { // Find current min timestamp of node i
-					if (values[i][j] > 0 && timestamps[i][j] < min) {
-						min = timestamps[i][j];
-						ranked[i] = j;
-						moreDeltas = true;
-					}
+		while (deltaSet.entryNumber() < MTU && !empty) {
+			empty = true;
+			for (int i=0; i<N; i++) {
+				int node = (int) Network.get(i).getID(); // Random access to nodes
+				if (!deltas[node].isEmpty()) {
+					empty = false;
+					Delta d = deltas[node].poll();
+					deltaSet.put(node,d.key,d.value,d.timestamp);
 				}
 			}
-			// System.err.println(Arrays.toString(ranked));
-			for (int i = 0; i < N; i++) { // Random access iteration with Network.get()
-				int node = (int) Network.get(i).getID();
-				if (ranked[node] >= 0) {
-					if (values[node][ranked[node]] > 0 && size + 1 <= MTU) {
-						deltaSet.put(node, ranked[node], values[node][ranked[node]], timestamps[node][ranked[node]]);
-						size++;
-					}
-					values[node][ranked[node]] = 0; // Exclude this entry from being considered
-					timestamps[node][ranked[node]] = 0;
-				}
-			}
-			// if (size == MTU) return deltaSet;
 		}
-		// System.err.println(deltaSet.entryNumber());
 		return deltaSet;
+	}
+
+	class DeltaComparator implements Comparator<Delta>{
+		@Override
+		public int compare(Delta delta, Delta t1) {
+			if (delta.timestamp < t1.timestamp) return -1;
+			else if (delta.timestamp == t1.timestamp) return 0;
+			else return 1;
+		}
+	}
+
+	private class Delta {
+		int key, timestamp, value;
+		public Delta(int key, int timestamp, int value) {
+			this.key = key;
+			this.timestamp = timestamp;
+			this.value = value;
+		}
 	}
 
 	@Override

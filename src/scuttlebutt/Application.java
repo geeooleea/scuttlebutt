@@ -55,10 +55,8 @@ public class Application implements Control {
 		if (time == 0) return false;
 
 		// Leave hard coded for now, considering config parameters
-		if (time >= 15*1000) {
+		if (time >= 15) {
 			Scuttlebutt.MTU = this.MTU;
-		} else {
-			Scuttlebutt.MTU = Integer.MAX_VALUE;
 		}
 
 		if (time < 25) {
