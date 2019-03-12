@@ -21,6 +21,7 @@ public class Database implements Cloneable {
 	private static final int N = Network.size();
 	private final int K;
 	private int currTime = 0;
+	private int self;
 	
 	/**
 	 * 
@@ -32,7 +33,17 @@ public class Database implements Cloneable {
 		timestamps = new int[N][K];
 		maxTime = new int[N];
 	}
-	
+
+	/**
+	 * Sets the node that owns this database.
+	 * Only needed at database initialization time.
+	 *
+	 * @param self
+	 */
+	public void setSelf(int self) {
+		this.self = self;
+	}
+
 	/**
 	 * Update state only if the update is fresher than the one currently available
 	 * 
@@ -47,6 +58,7 @@ public class Database implements Cloneable {
 			timestamps[node][key] = time;
 			maxTime[node] = Math.max(maxTime[node], time);
 		}
+		ScuttlebuttObserver.signalUpdate(self,node,key);
 	}
 	
 	/**

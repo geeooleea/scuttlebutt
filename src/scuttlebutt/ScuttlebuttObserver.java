@@ -8,6 +8,8 @@ package scuttlebutt;
 import java.util.ArrayList;
 import java.util.List;
 import peersim.config.Configuration;
+import peersim.config.FastConfig;
+import peersim.core.CommonState;
 import peersim.core.Control;
 import peersim.core.Network;
 import peersim.core.Node;
@@ -26,19 +28,21 @@ public class ScuttlebuttObserver implements Control {
 
 	private static int K;
 
+	private static long times[][][];
+
 	protected static void setK(int k) { K = k; }
 
 	public ScuttlebuttObserver(String prefix) {
 		pid = Configuration.getPid(prefix + "." + PAR_PROT);
-
+		times = new long[N][N][K];
 	}
 
 	@Override
 	public boolean execute() {
-		int count = 0, maxStale = 0;
+		int count = 0; long maxStale = 0;
 		boolean isStale[][] = new boolean[N][K];
 		int currState[], compState[];
-
+		long time = CommonState.getTime();
 		for (int i = 0; i < N; i++) {
 			Node current = Network.get(i);
 			currState = ((Scuttlebutt) current.getProtocol(pid)).getState(current);
@@ -50,13 +54,16 @@ public class ScuttlebuttObserver implements Control {
 				K = compState.length;
 				for (int k = 0; k < K; k++) {
 					if (currState[k] != compState[k] && !isStale[(int)current.getID()][k]) {
+						maxStale = Long.max(time - times[j][i][k], maxStale);
 						count++;
-						maxStale = Integer.max(maxStale, currState[k] - compState[k]);
+						// maxStale = Integer.max(maxStale, realTime(currState[k]) - realTime(compState[k]));
 						isStale[(int) current.getID()][k] = true;
 					}
 				}
 			}
 		}
+
+
 		/*
 		System.out.println("----------------------------------------------------");
 		System.out.println("Maximum staleness: " + maxStale);
@@ -68,4 +75,14 @@ public class ScuttlebuttObserver implements Control {
 		return false;
 	}
 
+	protected static void signalUpdate(int self, int node, int key) {
+		times[self][node][key] = CommonState.getTime();
+	}
+	/*
+	private int realTime(int t) {
+		if (t < 25) return t;
+		else if (t < 75) return 25 + (t-25)/2;
+		else return t - 50;
+	}
+	*/
 }
