@@ -11,6 +11,7 @@ import java.io.LineNumberReader;
 import peersim.config.Configuration;
 import peersim.core.Control;
 import peersim.core.Network;
+import peersim.core.Node;
 
 /**
  * Reads from the configuration file and sets a new database.
@@ -38,13 +39,14 @@ public class DatabaseInit implements Control {
 
 	@Override
 	public boolean execute() {
-
-		Database prototype = new Database(k);
 		Application.setK(k);
 		ScuttlebuttObserver.setK(k);
 		Scuttlebutt.setK(k);
 		for (int i=0; i<N; i++) {
-			((Scuttlebutt)Network.get(i).getProtocol(pid)).setDatabase((Database)prototype.clone());
+			Node node = Network.get(i);
+			Database db = new Database(k);
+			db.setSelf((int) node.getID());
+			((Scuttlebutt)node.getProtocol(pid)).setDatabase(db);
 		}
 		return true;
 	}

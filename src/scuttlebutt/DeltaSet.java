@@ -7,7 +7,8 @@ package scuttlebutt;
 
 /**
  * Implementation of the delta set used by two peers to reconcile their
- * databases. How the delta set is created is protocol-dependent.
+ * databases. How the delta set is created depends on the protocol configuration.
+ * Allows for iterable-like access to deltas in the set.
  *
  * @author Giulia Carocari
  */
@@ -19,20 +20,9 @@ public class DeltaSet {
 	private int timestamps[];
 
 	/**
-	 * Number of entries for a given node. Maybe to be used in
-	 * scuttlebutt#scuttledepth
-	 */
-	private int entryNum[];
-
-	/**
 	 * Number of entries in the deltaSet.
 	 */
 	private int N;
-
-	/**
-	 * Keep total size of values in constant time
-	 */
-	private long size = 0;
 
 	private int i = -1;
 	
@@ -59,14 +49,6 @@ public class DeltaSet {
 	}
 
 	/**
-	 * Get the total size of the entries.
-	 * @return 
-	 */
-	public long size() {
-		return size;
-	}
-
-	/**
 	 * 
 	 * @param node
 	 * @param key
@@ -74,7 +56,7 @@ public class DeltaSet {
 	 * @param timestamp
 	 */
 	public void put(int node, int key, int value, int timestamp) {
-		size += value;
+		// size += value;
 		nodes[N] = node;
 		keys[N] = key;
 		values[N] = value;
@@ -92,19 +74,19 @@ public class DeltaSet {
 		}
 	}
 
-	int nextNode() {
+	int getNode() {
 		return nodes[i];
 	}
 
-	int nextKey() {
+	int getKey() {
 		return keys[i];
 	}
 
-	int nextValue() {
+	int getValue() {
 		return values[i];
 	}
 
-	int nextTimestamp() {
+	int getTimestamp() {
 		return timestamps[i];
 	}
 

@@ -73,7 +73,7 @@ public class Application implements Control {
 	private void updateAll() {
 		for (int i = 0; i < N; i++) {
 			Node node = Network.get(i);
-			((Scuttlebutt) node.getProtocol(pid)).updateSelf((int) node.getID(), CommonState.r.nextInt(K),
+			((Scuttlebutt) node.getProtocol(pid)).updateSelf(CommonState.r.nextInt(K),
 					mins + 1 + CommonState.r.nextInt(maxs-1));
 		}
 	}

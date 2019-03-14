@@ -53,10 +53,6 @@ public class Scuttlebutt extends NextCycleEvent implements EDProtocol, CDProtoco
 	 */
 	private static int order;
 
-	private static final int DIGEST_SIZE = 8; // bytes
-
-	private static final int DELTA_HEADER = 12; // bytes
-
 	public Scuttlebutt(String prefix) {
 		super(prefix);
 		lbID = Configuration.getPid(prefix + "." + PAR_PROT, -1);
@@ -85,8 +81,10 @@ public class Scuttlebutt extends NextCycleEvent implements EDProtocol, CDProtoco
 	public void nextCycle(Node node, int pid) {
 		Linkable linkable
 				= (Linkable) node.getProtocol(FastConfig.getLinkable(pid));
+		// Obtain peer to initiate gossiping
 		Node peer = linkable.getNeighbor(
 				CommonState.r.nextInt(linkable.degree()));
+		// Send first digest message
 		((Transport) node.getProtocol(FastConfig.getTransport(pid))).
 				send(node, peer, new Message(node, getDigest(), Message.ACTION.DIGEST), pid);
 	}
@@ -96,29 +94,33 @@ public class Scuttlebutt extends NextCycleEvent implements EDProtocol, CDProtoco
 		if (o instanceof Message) {
 			Message m = (Message) o;
 			switch (m.action) {
-				case DIGEST:
+				case DIGEST: {
 					((Transport) node.getProtocol(FastConfig.getTransport(i))).
 							send(node,
 									m.getSender(),
 									new Message(node, getDigest(), Message.ACTION.DIGEST_RESPONSE),
 									i);
-				// NO BREAK HERE
-				case DIGEST_RESPONSE:
+				}
+				// NO BREAK HERE, after a node gets a digest it immediately sends the corresponding delta set
+				case DIGEST_RESPONSE: {
 					DeltaSet diff;
 					if (order == 1) {
 						diff = scuttleBreadth((int[]) m.getPayload());
 					} else {
 						diff = scuttleDepth((int[]) m.getPayload());
 					}
+
 					((Transport) node.getProtocol(FastConfig.getTransport(i))).
 							send(node,
 									m.getSender(),
 									new Message(node, diff, Message.ACTION.DELTA_SET),
 									i);
 					break;
-				case DELTA_SET:
+				}
+				case DELTA_SET: {
 					db.reconcile((DeltaSet) m.getPayload());
 					break;
+				}
 			}
 		}
 	}
@@ -137,19 +139,29 @@ public class Scuttlebutt extends NextCycleEvent implements EDProtocol, CDProtoco
 		return db.getState((int) n.getID());
 	}
 
-	void updateSelf(int node, int key, int value) {
-		db.updateSelf(node, key, value);
+	void updateSelf(int key, int value) {
+		db.updateSelf(key, value);
 	}
 
 	private DeltaSet scuttleDepth(int[] digest) {
+		// Obtain deltas for all nodes in the correct order
 		PriorityQueue<Delta> deltas[] = getDeltas(digest);
-		DeltaSet deltaSet = new DeltaSet(N,K);
 
-		Arrays.sort(deltas, new ScuttleDepthComparator());
-		for (int i=0; i<N && deltaSet.entryNumber() < MTU; i++) {
-			while (!deltas[i].isEmpty() && deltaSet.entryNumber() < MTU) {
-				Delta d = deltas[i].poll();
-				deltaSet.put(d.node,d.key,d.value,d.timestamp);
+		PriorityQueue<PriorityQueue<Delta>> depthSorted = new PriorityQueue<>(N,new ScuttleDepthComparator());
+
+		// Consider using the random access iterator to nodes
+		for (PriorityQueue<Delta> pq : deltas) depthSorted.add(pq);
+
+		DeltaSet deltaSet = new DeltaSet(N,K);
+		while (!depthSorted.isEmpty() && deltaSet.entryNumber() < MTU) {
+			PriorityQueue<Delta> pq = depthSorted.poll();
+			while (!pq.isEmpty() && deltaSet.entryNumber() < MTU) {
+				Delta d = pq.poll();
+				if (d.timestamp > digest[d.node])
+					deltaSet.put(d.node,d.key,d.value,d.timestamp);
+				else {
+					System.err.println("Just avoided putting obsolete update into digest");
+				}
 			}
 		}
 
@@ -169,34 +181,16 @@ public class Scuttlebutt extends NextCycleEvent implements EDProtocol, CDProtoco
 				if (!deltas[node].isEmpty()) {
 					empty = false;
 					Delta d = deltas[node].poll();
-					deltaSet.put(node,d.key,d.value,d.timestamp);
+					deltaSet.put(d.node,d.key,d.value,d.timestamp);
 				}
 			}
 		}
 		return deltaSet;
 	}
 
-	class DeltaComparator implements Comparator<Delta>{
-		@Override
-		public int compare(Delta delta, Delta t1) {
-			if (delta.timestamp < t1.timestamp) return -1;
-			else if (delta.timestamp == t1.timestamp) return 0;
-			else return 1;
-		}
-	}
-
-	class ScuttleDepthComparator implements Comparator<PriorityQueue<Delta>>{
-		@Override
-		public int compare(PriorityQueue<Delta> deltas, PriorityQueue<Delta> t1) {
-			if (deltas.size() > t1.size()) return -1;
-			else if (deltas.size() == t1.size()) return 0;
-			else return 1;
-		}
-	}
-
 	private class Delta {
 		int node, key, timestamp, value;
-		public Delta(int node, int key, int timestamp, int value) {
+		public Delta(int node, int key, int value, int timestamp) {
 			this.node = node;
 			this.key = key;
 			this.timestamp = timestamp;
@@ -204,21 +198,45 @@ public class Scuttlebutt extends NextCycleEvent implements EDProtocol, CDProtoco
 		}
 	}
 
+	/**
+	 * Implementation of the definition of scuttlebutt delta set in paragraph 3.2
+	 *
+	 * @param digest
+	 * @return
+	 */
 	private PriorityQueue<Delta>[] getDeltas(int[] digest) {
 		PriorityQueue<Delta> deltas[] = new PriorityQueue[N];
 		DeltaComparator cmp = new DeltaComparator();
 
 		// Obtain all deltas that are more recent than the peer's maximum timestamp in the digest
-		for (int i = 0; i < N; i++) {
-			deltas[i] = new PriorityQueue<>(K,cmp);
-			for (int j = 0; j < K; j++) {
-				int time = db.getTimestamp(i, j);
-				if (digest[i] >= 0 && digest[i] < time) {
-					deltas[i].add(new Delta(i,j,time,db.getValue(i,j)));
+		for (int node = 0; node < N; node++) {
+			deltas[node] = new PriorityQueue<>(cmp);
+			for (int key = 0; key < K; key++) {
+				int time = db.getTimestamp(node, key);
+				if (time > digest[node]) { // Current update at this node for (node,key) is fresher than any other at the peer
+					deltas[node].add(new Delta(node,key,db.getValue(node,key),time));
 				}
 			}
 		}
 		return deltas;
+	}
+
+	class DeltaComparator implements Comparator<Delta>{
+		@Override
+		public int compare(Delta delta, Delta t1) {
+			if (delta.timestamp < t1.timestamp) return -1;
+			else if (delta.timestamp == t1.timestamp) return 0; // Never happens
+			else return 1;
+		}
+	}
+
+	class ScuttleDepthComparator implements Comparator<PriorityQueue<Delta>>{
+		@Override
+		public int compare(PriorityQueue<Delta> deltas, PriorityQueue<Delta> t1) {
+			if (deltas.size() < t1.size()) return -1;
+			else if (deltas.size() == t1.size()) return 0;
+			else return 1;
+		}
 	}
 
 	@Override
@@ -226,10 +244,7 @@ public class Scuttlebutt extends NextCycleEvent implements EDProtocol, CDProtoco
 		Scuttlebutt clone = null;
 		try {
 			clone = (Scuttlebutt) super.clone();
-			// Database setting happens after cloning
-			if (db != null) {
-				clone.setDatabase((Database) db.clone());
-			}
+			// NOTE: database is set after protocol initialization
 		} catch (CloneNotSupportedException ex) {}
 		return clone;
 	}

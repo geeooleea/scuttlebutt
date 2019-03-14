@@ -63,14 +63,6 @@ public class ScuttlebuttObserver implements Control {
 			}
 		}
 
-
-		/*
-		System.out.println("----------------------------------------------------");
-		System.out.println("Maximum staleness: " + maxStale);
-
-		System.out.println("Number of stale entries: " + count);
-		System.out.println("----------------------------------------------------");
-		*/
 		System.out.println(maxStale + ", " + count);
 		return false;
 	}
@@ -78,11 +70,4 @@ public class ScuttlebuttObserver implements Control {
 	protected static void signalUpdate(int self, int node, int key) {
 		times[self][node][key] = CommonState.getTime();
 	}
-	/*
-	private int realTime(int t) {
-		if (t < 25) return t;
-		else if (t < 75) return 25 + (t-25)/2;
-		else return t - 50;
-	}
-	*/
 }
