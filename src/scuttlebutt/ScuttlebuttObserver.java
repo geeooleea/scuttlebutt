@@ -1,73 +1,63 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package scuttlebutt;
 
-import java.util.ArrayList;
-import java.util.List;
 import peersim.config.Configuration;
-import peersim.config.FastConfig;
 import peersim.core.CommonState;
 import peersim.core.Control;
 import peersim.core.Network;
 import peersim.core.Node;
 
-/**
- *
- * @author Giulia Carocari
- */
 public class ScuttlebuttObserver implements Control {
 
-	private static final String PAR_PROT = "protocol";
+    private static final String PAR_PROT = "protocol";
 
-	private final int pid;
+    private final int pid;
 
-	private static final int N = Network.size();
+    private static final int N = Network.size();
 
-	private static int K;
+    private static int K;
 
-	private static long times[][][];
+    // Holds the last time node j has updated entry (i,k)
+    private static long times[][][];
 
-	protected static void setK(int k) { K = k; }
+    protected static void setK(int k) { K = k; }
 
-	public ScuttlebuttObserver(String prefix) {
-		pid = Configuration.getPid(prefix + "." + PAR_PROT);
-		times = new long[N][N][K];
-	}
+    public ScuttlebuttObserver(String prefix) {
+        pid = Configuration.getPid(prefix + "." + PAR_PROT);
+        times = new long[N][N][K];
+    }
 
-	@Override
-	public boolean execute() {
-		int count = 0; long maxStale = 0;
-		boolean isStale[][] = new boolean[N][K];
-		int currState[], compState[];
-		long time = CommonState.getTime();
-		for (int i = 0; i < N; i++) {
-			Node current = Network.get(i);
-			currState = ((Scuttlebutt) current.getProtocol(pid)).getState(current);
-			for (int j = 0; j < N; j++) {
-				if (i == j) {
-					continue;
-				}
-				compState = ((Scuttlebutt) Network.get(j).getProtocol(pid)).getState(current);
-				K = compState.length;
-				for (int k = 0; k < K; k++) {
-					if (currState[k] != compState[k] && !isStale[(int)current.getID()][k]) {
-						maxStale = Long.max(time - times[j][i][k], maxStale);
-						count++;
-						// maxStale = Integer.max(maxStale, realTime(currState[k]) - realTime(compState[k]));
-						isStale[(int) current.getID()][k] = true;
-					}
-				}
-			}
-		}
+    @Override
+    public boolean execute() {
+        int countVal = 0, countEnt = 0; long maxStale = 0;
+        boolean isStale[][] = new boolean[N][K];
+        for (int i = 0; i < N; i++) {
+            Node node = Network.get(i);
+            Scuttlebutt scuttlebutt = (Scuttlebutt) node.getProtocol(pid);
+            int n1 = (int) node.getID();
+            for (int j = 0; j < N; j++) {
+                if (i == j) {
+                    continue;
+                }
+                Node node2 = Network.get(j);
+                Scuttlebutt scuttlebutt2 = (Scuttlebutt) node2.getProtocol(pid);
+                int n2 = (int) node2.getID();
+                for (int k = 0; k < K; k++) {
+                    if (scuttlebutt.db.getVersion(n1,k) != scuttlebutt2.db.getVersion(n1,k)) {
+                        countEnt++;
+                        if (!isStale[n1][k]) countVal++;
+                        isStale[n1][k] = true;
+                    }
+                    //maxStale = (times[n2][n1][k] > 0 ?
+                    //       Long.max(times[n1][n1][k] - times[n2][n1][k], maxStale) : maxStale);
+                }
+            }
+        }
 
-		System.out.println(maxStale + ", " + count);
-		return false;
-	}
+        System.out.println(/*maxStale + ", " +*/ countVal + ", " + countEnt);
+        return false;
+    }
 
-	protected static void signalUpdate(int self, int node, int key) {
-		times[self][node][key] = CommonState.getTime();
-	}
+    protected static void signalUpdate(int self, int node, int key) {
+        times[self][node][key] = CommonState.getTime();
+    }
 }

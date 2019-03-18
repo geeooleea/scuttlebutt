@@ -1,93 +1,79 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package scuttlebutt;
 
 /**
- * Implementation of the delta set used by two peers to reconcile their
- * databases. How the delta set is created depends on the protocol configuration.
- * Allows for iterable-like access to deltas in the set.
- *
- * @author Giulia Carocari
+ * Class that holds the deltas exchanged among peers
  */
 public class DeltaSet {
+    private int nodes[];
+    private int keys[];
+    private long versions[];
 
-	private int nodes[];
-	private int keys[];
-	private int values[];
-	private int timestamps[];
+    protected int size;
+    int i = -1;
+    private int capacity;
 
-	/**
-	 * Number of entries in the deltaSet.
-	 */
-	private int N;
+    /**
+     * Creates a delta set.
+     *
+     * @param capacity initial size of the delta set
+     */
+    public DeltaSet(int capacity) {
+        this.capacity = capacity;
+        nodes = new int[capacity];
+        keys = new int[capacity];
+        versions = new long[capacity];
+    }
 
-	private int i = -1;
-	
-	/**
-	 *
-	 * @param n Number of nodes
-	 * @param k Number of keys
-	 */
-	public DeltaSet(int n, int k) {
-		// Allocate enough space to fit all possible entries.
-		nodes = new int[n*k];
-		keys = new int[n*k];
-		values = new int[n*k];
-		timestamps = new int[n*k];
-	}
+    /**
+     * Inserts delta into delta set
+     * @param node
+     * @param key
+     * @param version
+     */
+    public void add(int node, int key, long version) {
+        if (size == capacity) {
+            doubleSize();
+        }
+        nodes[size] = node;
+        keys[size] = key;
+        versions[size] = version;
+        size++;
+    }
 
-	/**
-	 * Get the number of entries currently in the delta set.
-	 *
-	 * @return
-	 */
-	public int entryNumber() {
-		return N;
-	}
+    public boolean next() {
+        i++;
+        if (i<size) return true;
+        else {
+            i = -1;
+            return false;
+        }
+    }
 
-	/**
-	 * 
-	 * @param node
-	 * @param key
-	 * @param value
-	 * @param timestamp
-	 */
-	public void put(int node, int key, int value, int timestamp) {
-		// size += value;
-		nodes[N] = node;
-		keys[N] = key;
-		values[N] = value;
-		timestamps[N] = timestamp;
-		N++;
-	}
+    public int node() {
+        return nodes[i];
+    }
 
-	boolean next() {
-		i++;
-		if (i < N) {
-			return true;
-		} else {
-			i=0; // Reset for next iteration
-			return false;
-		}
-	}
+    public int key() {
+        return keys[i];
+    }
 
-	int getNode() {
-		return nodes[i];
-	}
+    public long version() {
+        return versions[i];
+    }
 
-	int getKey() {
-		return keys[i];
-	}
+    private void doubleSize() {
+        capacity *= 2;
+        int n[] = new int[capacity];
+        int k[] = new int[capacity];
+        long v[] = new long[capacity];
 
-	int getValue() {
-		return values[i];
-	}
-
-	int getTimestamp() {
-		return timestamps[i];
-	}
-
+        for (int i=0; i<size; i++) {
+            n[i] = nodes[i];
+            k[i] = keys[i];
+            v[i] = versions[i];
+        }
+        nodes = n;
+        keys = k;
+        versions = v;
+    }
 }

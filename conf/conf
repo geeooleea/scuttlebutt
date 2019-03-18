@@ -2,9 +2,9 @@
 SIZE 128
 
 # parameters of periodic execution
-CYCLES 141
-# 1 cycle lasts 1 s
-CYCLE 1
+CYCLES 140
+# 1 cycle lasts 1s
+CYCLE 10000
 
 # parameters of message transfer
 # delay values here are relative to cycle length, in percentage,
@@ -19,9 +19,7 @@ network.size SIZE
 simulation.endtime CYCLE*CYCLES
 simulation.logtime CYCLE
 
-protocol.lnk example.newscast.SimpleNewscast
-protocol.lnk.cache 20
-protocol.lnk.step CYCLE
+protocol.lnk peersim.core.IdleProtocol
 
 protocol.urt UniformRandomTransport
 protocol.urt.mindelay (CYCLE*MINDELAY)/100
@@ -35,27 +33,26 @@ protocol.scut scuttlebutt.Scuttlebutt
 protocol.scut.linkable lnk
 protocol.scut.transport tr
 protocol.scut.order breadth
+protocol.scut.MTU 100
+protocol.scut.keys 64
 protocol.scut.step CYCLE
 
-init.rndlink WireKOut
-init.rndlink.k 20
-init.rndlink.protocol lnk
+protocol.app scuttlebutt.Application
+protocol.app.protocol scut
+protocol.app.step CYCLE
 
-init.dbinit scuttlebutt.DatabaseInit
-init.dbinit.protocol scut
-init.dbinit.keys 64
+init.rndlink WireKOut
+init.rndlink.k SIZE
+init.rndlink.protocol lnk
 
 init.sch CDScheduler
 init.sch.protocol scut
-# init.sch.randstart
+# simulate lack of synchronized clock
+init.sch.randstart
 
-control.app scuttlebutt.Application
-control.app.protocol scut
-control.app.maxsize 10
-control.app.mtu 100
-# One update every 4 cycles, initially
-# Then it doubles update frequency
-control.app.step CYCLE
+init.sch2 CDScheduler
+init.sch2.protocol app
+init.sch.randstart
 
 control.so scuttlebutt.ScuttlebuttObserver
 control.so.protocol scut

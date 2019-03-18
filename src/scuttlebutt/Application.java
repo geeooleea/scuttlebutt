@@ -1,81 +1,43 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package scuttlebutt;
 
+import peersim.cdsim.CDProtocol;
 import peersim.config.Configuration;
 import peersim.core.CommonState;
-import peersim.core.Control;
-import peersim.core.Network;
 import peersim.core.Node;
+import peersim.edsim.NextCycleEvent;
 
-/**
- *
- * @author Giulia Carocari
- */
-public class Application implements Control {
+public class Application extends NextCycleEvent implements CDProtocol {
 
-	private static final String PAR_PROT = "protocol";
+    private static final int CYCLE = 10000;
 
-	private static final String PAR_MAX_SIZE = "maxsize";
+    private static final String PAR_PROT = "protocol";
 
-	private static final String PAR_MIN_SIZE = "minsize";
+    private static int pid;
 
-	private static final String PAR_MTU = "mtu";
+    public Application(String prefix) {
+        super(prefix);
+        pid = Configuration.getPid(prefix + "." + PAR_PROT);
+    }
 
-	private final int pid;
+    @Override
+    public void nextCycle(Node node, int i) {
+        if (CommonState.getTime() < 120 * CYCLE) {
+            Database db = ((Scuttlebutt) node.getProtocol(pid)).db;
 
-	private static final int N = Network.size();
+            db.update((int) node.getID(), CommonState.r.nextInt(db.getK()));
+            // Doubled update rate
+            if (CommonState.getTime() >= 25 * CYCLE && CommonState.getTime() < 75 * CYCLE) {
+                db.update((int) node.getID(), CommonState.r.nextInt(db.getK()));
+            }
+        }
+    }
 
-	private static int K;
-
-	private static int MTU;
-
-	public static void setK(int K) {
-		Application.K = K;
-	}
-
-	private static int maxs;
-	private static int mins;
-
-	public Application(String prefix) {
-		pid = Configuration.getPid(prefix + "." + PAR_PROT);
-		maxs = Configuration.getInt(prefix + "." + PAR_MAX_SIZE);
-		System.err.println("----> Maximum update size: " + maxs);
-		mins = Configuration.getInt(prefix + "." + PAR_MIN_SIZE, 0);
-		MTU = Configuration.getInt(prefix + "." + PAR_MTU);
-		System.err.println("MTU = " + MTU);
-	}
-
-	@Override
-	public boolean execute() {
-		long time = CommonState.getTime();
-		if (time == 0) return false;
-
-		// Leave hard coded for now, considering config parameters
-		if (time >= 15) {
-			Scuttlebutt.MTU = this.MTU;
-		}
-
-		if (time < 25) {
-			updateAll();
-		} else if (time < 75) {
-			updateAll();
-			updateAll();
-		} else if (time < 120) {
-			updateAll();
-		}
-		return false;
-	}
-
-	private void updateAll() {
-		for (int i = 0; i < N; i++) {
-			Node node = Network.get(i);
-			((Scuttlebutt) node.getProtocol(pid)).updateSelf(CommonState.r.nextInt(K),
-					mins + 1 + CommonState.r.nextInt(maxs-1));
-		}
-	}
-
+    @Override
+    public Object clone() {
+        Application app = null;
+        try {
+            app = (Application) super.clone();
+        } catch (CloneNotSupportedException ex) {}
+        return app;
+    }
 }
