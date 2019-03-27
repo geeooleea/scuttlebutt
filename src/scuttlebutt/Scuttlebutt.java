@@ -18,7 +18,7 @@ import java.util.PriorityQueue;
 /**
  * Implementation of the scuttlebutt protocol for reconciliation
  */
-public class Scuttlebutt extends NextCycleEvent implements CDProtocol, EDProtocol  {
+public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  {
     private static final String PAR_PROT = "loadbalance";
     private static final String PAR_ORD = "order";
     private static final String PAR_K = "keys";
@@ -41,8 +41,6 @@ public class Scuttlebutt extends NextCycleEvent implements CDProtocol, EDProtoco
 
     private static int N;
     private static int K;
-
-    protected Database db;
 
     /**
      * @param prefix
@@ -73,6 +71,7 @@ public class Scuttlebutt extends NextCycleEvent implements CDProtocol, EDProtoco
      */
     @Override
     public void nextCycle(Node node, int pid) {
+        db.self = (int) node.getID();
         Linkable linkable
                 = (Linkable) node.getProtocol(FastConfig.getLinkable(pid));
         // Obtain peer to initiate gossiping
@@ -110,15 +109,18 @@ public class Scuttlebutt extends NextCycleEvent implements CDProtocol, EDProtoco
      * @return
      */
     private DeltaSet getDifference(long[] digest) {
-        // Set MTU after 15 seconds to allow the system to warm up
+        // Set MTU after 15 seconds to allow the system to warm up and remove bias
         int MTU = CommonState.getTime() >= 15l*10000 ? this.MTU : Integer.MAX_VALUE;
         DeltaSet deltaSet = new DeltaSet(Integer.min(MTU,100));
         PriorityQueue<Delta> deltas[] = getDeltas(digest);
 
         int next[] = new int[N];
-
+        int updates = 0;
         // Select a different random ordering for every gossip exchange
-        for (int i=0; i<N; i++) next[i] = i;// (int) Network.get(i).getID();
+        for (int i=0; i<N; i++) {
+            next[i] = (int) Network.get(i).getID();
+            updates += deltas[i].size();
+        }
 
         if (order == 1) { // Scuttle-breadth
             boolean empty = false;
@@ -134,23 +136,18 @@ public class Scuttlebutt extends NextCycleEvent implements CDProtocol, EDProtoco
             }
         } else { // Scuttle depth
             Arrays.sort(deltas, new DeltaQueueComparator());
-            //PriorityQueue<PriorityQueue<Delta>> sorted = new PriorityQueue<>(new DeltaQueueComparator());
-            // for (int i=0; i<N; i++) sorted.add(deltas[next[i]]);
             for (int i=0; i<N && deltaSet.size < MTU; i++) {
-                /*
-                PriorityQueue<Delta> curr = sorted.poll();
-                while (!curr.isEmpty() && deltaSet.size < MTU) {
-                    Delta d = curr.poll();
-                    deltaSet.add(d.node,d.key,d.version);
-                }
-                */
-                // System.err.print(deltas[i].size() + " ");
                 while (!deltas[i].isEmpty() && deltaSet.size < MTU) {
                     Delta d = deltas[i].poll();
                     deltaSet.add(d.node,d.key,d.version);
                 }
             }
         }
+
+        if (updates > 0) {
+            ScuttlebuttObserver.avgMessageRate = (ScuttlebuttObserver.avgMessageRate + ((double)deltaSet.size / updates)) / 2;
+        }
+
         return deltaSet;
     }
 

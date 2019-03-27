@@ -22,13 +22,14 @@ public class Application extends NextCycleEvent implements CDProtocol {
     @Override
     public void nextCycle(Node node, int i) {
         if (CommonState.getTime() < 120 * CYCLE) {
-            Database db = ((Scuttlebutt) node.getProtocol(pid)).db;
+            Database db = ((DbContainer) node.getProtocol(pid)).db;
 
             db.update((int) node.getID(), CommonState.r.nextInt(db.getK()));
             // Doubled update rate
             if (CommonState.getTime() >= 25 * CYCLE && CommonState.getTime() < 75 * CYCLE) {
                 db.update((int) node.getID(), CommonState.r.nextInt(db.getK()));
             }
+
         }
     }
 

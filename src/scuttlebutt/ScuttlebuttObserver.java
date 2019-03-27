@@ -10,6 +10,9 @@ public class ScuttlebuttObserver implements Control {
 
     private static final String PAR_PROT = "protocol";
 
+    protected static int reconciledCount = 0;
+    protected static double avgMessageRate = 0;
+
     private final int pid;
 
     private static final int N = Network.size();
@@ -28,32 +31,41 @@ public class ScuttlebuttObserver implements Control {
 
     @Override
     public boolean execute() {
+        if (CommonState.getTime() == 0) {
+            System.out.println("a,b,c,d,e,f");
+            return false;
+        }
         int countVal = 0, countEnt = 0; long maxStale = 0;
+        int staleO = 0,staleN = 0,staleK = 0; long staleV = -1;
         boolean isStale[][] = new boolean[N][K];
         for (int i = 0; i < N; i++) {
             Node node = Network.get(i);
-            Scuttlebutt scuttlebutt = (Scuttlebutt) node.getProtocol(pid);
+            DbContainer scuttlebutt = (DbContainer) node.getProtocol(pid);
             int n1 = (int) node.getID();
             for (int j = 0; j < N; j++) {
-                if (i == j) {
-                    continue;
-                }
                 Node node2 = Network.get(j);
-                Scuttlebutt scuttlebutt2 = (Scuttlebutt) node2.getProtocol(pid);
+                if (node.getID() == node2.getID()) continue;
+                DbContainer scuttlebutt2 = (DbContainer) node2.getProtocol(pid);
                 int n2 = (int) node2.getID();
                 for (int k = 0; k < K; k++) {
+                    // From the definition of stale entry
                     if (scuttlebutt.db.getVersion(n1,k) != scuttlebutt2.db.getVersion(n1,k)) {
+                        if (/*scuttlebutt2.db.getVersion(n1,k) >= 0 && CommonState.getTime()*/ times[n1][n2][k] - times[n2][n1][k] >= maxStale) {
+                            maxStale = Long.max(CommonState.getTime() - times[n2][n1][k], maxStale);
+                            staleN=n1; staleO = n2; staleK = k; staleV = scuttlebutt2.db.getVersion(n1,k);
+                        }
                         countEnt++;
                         if (!isStale[n1][k]) countVal++;
                         isStale[n1][k] = true;
                     }
-                    //maxStale = (times[n2][n1][k] > 0 ?
-                    //       Long.max(times[n1][n1][k] - times[n2][n1][k], maxStale) : maxStale);
                 }
             }
         }
 
-        System.out.println(/*maxStale + ", " +*/ countVal + ", " + countEnt);
+        System.out.println(CommonState.getTime()/10000 + ", " + reconciledCount + ", " + avgMessageRate + ", " + countVal + ", " + countEnt + ", " + maxStale/10000);
+        // System.out.println("MaxStale on " + staleO + ": (" + staleN + ", " + staleK + ", "+ staleV +")");
+        reconciledCount = 0;
+        avgMessageRate = 0;
         return false;
     }
 
