@@ -10,7 +10,7 @@ public class Database {
     protected int self;
     private long version[][];
     private long digest[];
-    private static  long n;
+    private long n;
 
     /**
      * Creates a database given its size. The resulting database is a table of size N*K.
@@ -21,8 +21,8 @@ public class Database {
     public Database(int N, int K) {
         this.N = N;
         this.K = K;
-        digest = new long[N+1];
-        version = new long[N+1][K+1];
+        digest = new long[N];
+        version = new long[N][K];
         for (int i=0; i<N; i++) {
             digest[i] = -1;
             for (int j=0; j<K; j++) {
@@ -63,11 +63,6 @@ public class Database {
      * @param time
      */
     public void update(int node, int key, long time) {
-        if (time > version[node][key]) {
-            ScuttlebuttObserver.signalUpdate(self, node, key);
-        } else {
-            System.err.println("Redundant update");
-        }
         version[node][key] = Long.max(version[node][key], time);
         digest[node] = Long.max(digest[node], time);
     }

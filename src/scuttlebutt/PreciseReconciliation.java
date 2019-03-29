@@ -41,7 +41,6 @@ public class PreciseReconciliation  extends DbContainer implements CDProtocol, E
     public PreciseReconciliation(String prefix) {
         super(prefix);
         MTU = Configuration.getInt(prefix + "." + PAR_MTU, Integer.MAX_VALUE);
-        // Use default if value is other than "breadth"
         order = Configuration.getString(prefix + "." + PAR_ORD, "newest").equals("oldest") ? 1 : 0;
         System.err.println("---> Using precise-" + (order == 1 ? "oldest" : "newest") + " ordering");
         N = Network.size();
@@ -83,7 +82,7 @@ public class PreciseReconciliation  extends DbContainer implements CDProtocol, E
     private DeltaSet getDifference(long[][] digest) {
         ArrayList<Delta> deltas = new ArrayList<>();
 
-        for (int i=0; i<=N; i++) {
+        for (int i=0; i<N; i++) {
             for (int j=0; j<K; j++) {
                 if (digest[i][j] < db.getVersion(i,j)) {
                     deltas.add(new Delta(i,j,db.getVersion(i,j)));

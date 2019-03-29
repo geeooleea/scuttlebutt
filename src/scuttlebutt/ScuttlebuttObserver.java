@@ -20,23 +20,22 @@ public class ScuttlebuttObserver implements Control {
     private static int K;
 
     // Holds the last time node j has updated entry (i,k)
-    private static long times[][][];
+    private static long times[][];
 
     protected static void setK(int k) { K = k; }
 
     public ScuttlebuttObserver(String prefix) {
         pid = Configuration.getPid(prefix + "." + PAR_PROT);
-        times = new long[N][N][K];
+        times = new long[N][K];
     }
 
     @Override
     public boolean execute() {
         if (CommonState.getTime() == 0) {
-            System.out.println("a,b,c,d,e,f");
+            System.out.println("t,reconciled,values,mappings,staleness");
             return false;
         }
         int countVal = 0, countEnt = 0; long maxStale = 0;
-        int staleO = 0,staleN = 0,staleK = 0; long staleV = -1;
         boolean isStale[][] = new boolean[N][K];
         for (int i = 0; i < N; i++) {
             Node node = Network.get(i);
@@ -50,10 +49,7 @@ public class ScuttlebuttObserver implements Control {
                 for (int k = 0; k < K; k++) {
                     // From the definition of stale entry
                     if (scuttlebutt.db.getVersion(n1,k) != scuttlebutt2.db.getVersion(n1,k)) {
-                        if (/*scuttlebutt2.db.getVersion(n1,k) >= 0 && CommonState.getTime()*/ times[n1][n2][k] - times[n2][n1][k] >= maxStale) {
-                            maxStale = Long.max(CommonState.getTime() - times[n2][n1][k], maxStale);
-                            staleN=n1; staleO = n2; staleK = k; staleV = scuttlebutt2.db.getVersion(n1,k);
-                        }
+                        maxStale = Long.max((times[n1][k] > 0 ? CommonState.getTime() - times[n1][k] : 0), maxStale);
                         countEnt++;
                         if (!isStale[n1][k]) countVal++;
                         isStale[n1][k] = true;
@@ -62,14 +58,13 @@ public class ScuttlebuttObserver implements Control {
             }
         }
 
-        System.out.println(CommonState.getTime()/10000 + ", " + reconciledCount + ", " + avgMessageRate + ", " + countVal + ", " + countEnt + ", " + maxStale/10000);
-        // System.out.println("MaxStale on " + staleO + ": (" + staleN + ", " + staleK + ", "+ staleV +")");
+        System.out.println(CommonState.getTime()/10000 + ", " + reconciledCount + ", " + countVal + ", " + countEnt + ", " + maxStale/10000);
         reconciledCount = 0;
         avgMessageRate = 0;
         return false;
     }
 
-    protected static void signalUpdate(int self, int node, int key) {
-        times[self][node][key] = CommonState.getTime();
+    protected static void signalUpdate(int node, int key) {
+        times[node][key] = CommonState.getTime();
     }
 }
