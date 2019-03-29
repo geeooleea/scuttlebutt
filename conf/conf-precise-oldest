@@ -28,28 +28,29 @@ protocol.urt UniformRandomTransport
 protocol.urt.mindelay (CYCLE*MINDELAY)/100
 protocol.urt.maxdelay (CYCLE*MAXDELAY)/100
 
-protocol.tr UnreliableTransport
-protocol.tr.transport urt
-protocol.tr.drop DROP
+#protocol.tr UnreliableTransport
+#protocol.tr.transport urt
+#protocol.tr.drop DROP
 
-protocol.scut scuttlebutt.Scuttlebutt
-protocol.scut.linkable lnk
-protocol.scut.transport tr
-protocol.scut.order depth
-protocol.scut.MTU 100
-protocol.scut.keys 64
-protocol.scut.step CYCLE
+protocol.prec scuttlebutt.PreciseReconciliation
+protocol.prec.linkable lnk
+protocol.prec.transport urt
+protocol.prec.order oldest
+protocol.prec.MTU 100
+protocol.prec.keys 64
+protocol.prec.step CYCLE
 
 protocol.app scuttlebutt.Application
-protocol.app.protocol scut
+protocol.app.protocol prec
+#Initially, one update per second
 protocol.app.step CYCLE
 
 init.rndlink WireKOut
-init.rndlink.k 2*SIZE
+init.rndlink.k SIZE
 init.rndlink.protocol lnk
 
 init.sch CDScheduler
-init.sch.protocol scut
+init.sch.protocol prec
 # simulate lack of synchronized clock
 init.sch.randstart
 
@@ -58,5 +59,5 @@ init.sch2.protocol app
 init.sch2.randstart
 
 control.so scuttlebutt.ScuttlebuttObserver
-control.so.protocol scut
+control.so.protocol prec
 control.so.step CYCLE
