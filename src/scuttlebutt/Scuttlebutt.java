@@ -8,7 +8,6 @@ import peersim.core.Linkable;
 import peersim.core.Network;
 import peersim.core.Node;
 import peersim.edsim.EDProtocol;
-import peersim.edsim.NextCycleEvent;
 import peersim.transport.Transport;
 
 import java.util.Arrays;
@@ -60,7 +59,7 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
         System.err.println("---> Using scuttle-" + (order == 1 ? "breadth" : "depth") + " ordering");
         N = Network.size();
         K = Configuration.getInt(prefix + "." + PAR_K);
-        db = new Database(N,K);
+        db = new Database(N,K,true);
         ScuttlebuttObserver.setK(K);
     }
 
@@ -71,7 +70,6 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
      */
     @Override
     public void nextCycle(Node node, int pid) {
-        db.self = (int) node.getID();
         Linkable linkable
                 = (Linkable) node.getProtocol(FastConfig.getLinkable(pid));
         // Obtain peer to initiate gossiping
@@ -209,7 +207,7 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
         Scuttlebutt sc = null;
         try {
             sc = (Scuttlebutt) super.clone();
-            sc.db = new Database(N,K);
+            sc.db = new Database(N,K,true);
         } catch (CloneNotSupportedException ex) {}
         return sc;
     }

@@ -45,13 +45,12 @@ public class PreciseReconciliation  extends DbContainer implements CDProtocol, E
         System.err.println("---> Using precise-" + (order == 1 ? "oldest" : "newest") + " ordering");
         N = Network.size();
         K = Configuration.getInt(prefix + "." + PAR_K);
-        db = new Database(N,K);
+        db = new Database(N,K,false);
         ScuttlebuttObserver.setK(K);
     }
 
     @Override
     public void nextCycle(Node node, int pid) {
-        db.self = (int) node.getID();
         Linkable linkable
                 = (Linkable) node.getProtocol(FastConfig.getLinkable(pid));
         // Obtain peer to initiate gossiping
@@ -126,7 +125,7 @@ public class PreciseReconciliation  extends DbContainer implements CDProtocol, E
         PreciseReconciliation sc = null;
         try {
             sc = (PreciseReconciliation) super.clone();
-            sc.db = new Database(N,K);
+            sc.db = new Database(N,K,false);
         } catch (CloneNotSupportedException ex) {}
         return sc;
     }

@@ -7,10 +7,11 @@ public class Database {
 
     private static int N;
     private static int K;
-    protected int self;
     private long version[][];
     private long digest[];
-    private long n;
+    private long n = 0;
+    private static long clock = 0;
+    private boolean scuttlebutt;
 
     /**
      * Creates a database given its size. The resulting database is a table of size N*K.
@@ -18,9 +19,10 @@ public class Database {
      * @param N Number of nodes in the network
      * @param K Number of keys for every node
      */
-    public Database(int N, int K) {
+    public Database(int N, int K, boolean scuttlebutt) {
         this.N = N;
         this.K = K;
+        this.scuttlebutt = scuttlebutt;
         digest = new long[N];
         version = new long[N][K];
         for (int i=0; i<N; i++) {
@@ -74,7 +76,10 @@ public class Database {
      * @param key
      */
     public void update(int node, int key) {
-        update(node, key, ++n);
+        if (scuttlebutt)
+            update(node, key, ++n);
+        else
+            update(node, key, ++clock);
     }
 
     /**
