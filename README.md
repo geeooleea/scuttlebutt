@@ -6,4 +6,5 @@ This code can simulate both the reconciliation mechanisms described in the paper
 * Scuttlebutt with scuttle-depth ordering
 * Precise reconciliation with precise-oldest ordering
 * Precise reconciliation with precise-newest ordering
-Each experiment runs on a network of 128 nodes, each holdin 64 key-value mappings.
+
+Each experiment runs on a network of 128 nodes, each holding 64 key-value mappings.
