@@ -12,6 +12,7 @@ public class Database {
     private long n = 0;
     private static long clock = 0;
     private boolean scuttlebutt;
+    protected long self;
 
     /**
      * Creates a database given its size. The resulting database is a table of size N*K.
@@ -65,6 +66,7 @@ public class Database {
      * @param time
      */
     public void update(int node, int key, long time) {
+        if (node != self && time > version[node][key]) PropagationObserver.increment(node, key);
         version[node][key] = Long.max(version[node][key], time);
         digest[node] = Long.max(digest[node], time);
     }

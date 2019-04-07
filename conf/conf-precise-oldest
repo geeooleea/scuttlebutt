@@ -61,3 +61,7 @@ init.sch2.randstart
 control.so scuttlebutt.ScuttlebuttObserver
 control.so.protocol prec
 control.so.step CYCLE
+
+control.po scuttlebutt.PropagationObserver
+control.po.step CYCLE*CYCLES-1
+control.po.file ../thesis/plots/precise-oldest-delay

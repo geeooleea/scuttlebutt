@@ -33,6 +33,10 @@ public class ScuttlebuttObserver implements Control {
     public boolean execute() {
         if (CommonState.getTime() == 0) {
             System.out.println("t,reconciled,values,mappings,staleness");
+            for (int i=0; i<N; i++) {
+                Node node = Network.get(i);
+                ((DbContainer)node.getProtocol(pid)).db.self = node.getID();
+            }
             return false;
         }
         int countVal = 0, countEnt = 0; long maxStale = 0;
@@ -66,5 +70,9 @@ public class ScuttlebuttObserver implements Control {
 
     protected static void signalUpdate(int node, int key) {
         times[node][key] = CommonState.getTime();
+    }
+
+    protected static int getDelay(int node, int key) {
+        return (int) ((CommonState.getTime() - times[node][key])/10000);
     }
 }
