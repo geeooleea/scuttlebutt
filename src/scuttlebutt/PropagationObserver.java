@@ -1,15 +1,17 @@
 package scuttlebutt;
 
 import peersim.config.Configuration;
+import peersim.config.FastConfig;
 import peersim.core.CommonState;
 import peersim.core.Control;
+import peersim.edsim.EDSimulator;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
 public class PropagationObserver implements Control {
-    public static final int N = 92;
+    public static final int N = (int) CommonState.getEndTime()/10000 + 1;
     private static final String PAR_FILE = "file";
 
     private static int delayCount[] = new int[N];

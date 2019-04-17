@@ -8,4 +8,8 @@ public abstract class DbContainer extends NextCycleEvent {
     public DbContainer(String s) {
         super(s);
     }
+
+    public Database getDb() {
+        return db;
+    }
 }

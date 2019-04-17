@@ -2,7 +2,7 @@
 SIZE 128
 
 # parameters of periodic execution
-CYCLES 140
+CYCLES 30000
 # 1 cycle lasts 1s
 CYCLE 10000
 
@@ -35,15 +35,13 @@ protocol.urt.maxdelay (CYCLE*MAXDELAY)/100
 protocol.prec scuttlebutt.PreciseReconciliation
 protocol.prec.linkable lnk
 protocol.prec.transport urt
-protocol.prec.order oldest
+protocol.prec.order newest
 protocol.prec.MTU 100
 protocol.prec.keys 64
 protocol.prec.step CYCLE
 
-protocol.app scuttlebutt.Application
+protocol.app scuttlebutt.bitcoin.BitcoinApp
 protocol.app.protocol prec
-#Initially, one update per second
-protocol.app.step CYCLE
 
 init.rndlink WireKOut
 init.rndlink.k SIZE
@@ -54,9 +52,9 @@ init.sch.protocol prec
 # simulate lack of synchronized clock
 init.sch.randstart
 
-init.sch2 CDScheduler
-init.sch2.protocol app
-init.sch2.randstart
+init.btcinit scuttlebutt.bitcoin.BitcoinInit
+init.btcinit.protocol app
+init.btcinit.file btc-dataset/txdata.txt
 
 control.so scuttlebutt.ScuttlebuttObserver
 control.so.protocol prec
@@ -64,4 +62,4 @@ control.so.step CYCLE
 
 control.po scuttlebutt.PropagationObserver
 control.po.step CYCLE*CYCLES-1
-control.po.file ../thesis/plots/precise-oldest-delay
+control.po.file res/btc/precise-newest-delay

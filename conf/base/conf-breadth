@@ -1,0 +1,62 @@
+# network size
+SIZE 128
+
+# parameters of periodic execution
+CYCLES 140
+# 1 cycle lasts 1s
+CYCLE 10000
+
+# parameters of message transfer
+# delay values here are relative to cycle length, in percentage,
+# eg 50 means half the cycle length, 200 twice the cycle length, etc.
+MINDELAY 0
+MAXDELAY 0
+# drop is a probability, 0<=DROP<=1
+DROP 0
+
+random.seed 1234567890
+network.size SIZE
+simulation.endtime CYCLE*CYCLES
+simulation.logtime CYCLE
+
+protocol.lnk peersim.core.IdleProtocol
+#protocol.lnk example.newscast.SimpleNewscast
+#protocol.lnk.cache SIZE
+#protocol.lnk.step CYCLE
+
+protocol.urt UniformRandomTransport
+protocol.urt.mindelay (CYCLE*MINDELAY)/100
+protocol.urt.maxdelay (CYCLE*MAXDELAY)/100
+
+protocol.scut scuttlebutt.Scuttlebutt
+protocol.scut.linkable lnk
+protocol.scut.transport urt
+protocol.scut.order breadth
+protocol.scut.MTU 100
+protocol.scut.keys 64
+protocol.scut.step CYCLE
+
+protocol.app scuttlebutt.Application
+protocol.app.protocol scut
+protocol.app.step CYCLE
+
+init.rndlink WireKOut
+init.rndlink.k 2*SIZE
+init.rndlink.protocol lnk
+
+init.sch CDScheduler
+init.sch.protocol scut
+# simulate lack of synchronized clock
+init.sch.randstart
+
+init.sch2 CDScheduler
+init.sch2.protocol app
+init.sch2.randstart
+
+control.so scuttlebutt.ScuttlebuttObserver
+control.so.protocol scut
+control.so.step CYCLE
+
+control.po scuttlebutt.PropagationObserver
+control.po.step CYCLE*CYCLES-1
+control.po.file res/base/scuttle-breadth-delay

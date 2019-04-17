@@ -35,7 +35,7 @@ protocol.urt.maxdelay (CYCLE*MAXDELAY)/100
 protocol.prec scuttlebutt.PreciseReconciliation
 protocol.prec.linkable lnk
 protocol.prec.transport urt
-protocol.prec.order newest
+protocol.prec.order oldest
 protocol.prec.MTU 100
 protocol.prec.keys 64
 protocol.prec.step CYCLE
@@ -64,4 +64,4 @@ control.so.step CYCLE
 
 control.po scuttlebutt.PropagationObserver
 control.po.step CYCLE*CYCLES-1
-control.po.file ../thesis/plots/precise-newest-delay
+control.po.file res/base/precise-oldest-delay

@@ -1,5 +1,6 @@
 # network size
 SIZE 128
+KEYS 64
 
 # parameters of periodic execution
 CYCLES 140
@@ -33,7 +34,7 @@ protocol.scut.linkable lnk
 protocol.scut.transport urt
 protocol.scut.order depth
 protocol.scut.MTU 100
-protocol.scut.keys 64
+protocol.scut.keys KEYS
 protocol.scut.step CYCLE
 
 protocol.app scuttlebutt.Application
@@ -59,4 +60,4 @@ control.so.step CYCLE
 
 control.po scuttlebutt.PropagationObserver
 control.po.step CYCLE*CYCLES-1
-control.po.file ../thesis/plots/scuttle-depth-delay
+control.po.file res/base/scuttle-depth-delay
