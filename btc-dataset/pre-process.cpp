@@ -18,8 +18,15 @@ int main() {
     }
 
     sort(timestamps.begin(),timestamps.end());
-    for (int i=2; i<timestamps.size(); i++) {
-        out << timestamps[i]-timestamps[2] << "\n";
+    int last=0;
+    while (timestamps[1]-timestamps[0] > 5 && !timestamps.empty()) {
+        timestamps.erase(timestamps.begin());
+    }
+    while (timestamps[last+1]-timestamps[last] < 15 && last < timestamps.size()) {
+        last++;
+    }
+    for (int i=0; i<last; i++) { 
+        out << timestamps[i]-timestamps[0] << "\n";
     }
     return 0;
 }
