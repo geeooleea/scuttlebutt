@@ -1,5 +1,7 @@
 package scuttlebutt;
 
+import peersim.core.CommonState;
+
 /**
  * Class that implements the database replicated onto every node.
  */
@@ -10,7 +12,6 @@ public class Database {
     private long version[][];
     private long digest[];
     private long n = 0;
-    private static long clock = 0;
     private boolean scuttlebutt;
     protected long self;
 
@@ -19,6 +20,8 @@ public class Database {
      *
      * @param N Number of nodes in the network
      * @param K Number of keys for every node
+     * @param scuttlebutt States if a the database is meant for scuttlebutt or precise reconciliation.
+     *                    If false, then a synchronized clock is used to timestamp updates.
      */
     public Database(int N, int K, boolean scuttlebutt) {
         this.N = N;
@@ -26,6 +29,7 @@ public class Database {
         this.scuttlebutt = scuttlebutt;
         digest = new long[N];
         version = new long[N][K];
+        // 0 is a valid timestamp, so not updated keys are -1
         for (int i=0; i<N; i++) {
             digest[i] = -1;
             for (int j=0; j<K; j++) {
@@ -35,22 +39,26 @@ public class Database {
     }
 
     /**
-     * Returns the current version number of a mapping
+     * Returns the current version number of a mapping.
      *
-     * @param node
-     * @param key
-     * @return
+     * @param node Node coordinate of the mapping
+     * @param key   Key coordinate of the mapping
+     * @return  Version number/timestamp associated with this (node,key) mapping
      */
     public long getVersion(int node, int key) {
         return version[node][key];
     }
 
-    public static int getK() {
+    /**
+     * Retrieves the number of keys for each state in the database.
+     * @return The number of keys
+     */
+    public int getK() {
         return K;
     }
 
     /**
-     * Returns the current maximum version number for every node in this database
+     * Returns the current maximum version number for every node's state in this database
      *
      * @return
      */
@@ -59,7 +67,7 @@ public class Database {
     }
 
     /**
-     * Updates a mapping
+     * Updates a generic mapping.
      *
      * @param node
      * @param key
@@ -72,7 +80,7 @@ public class Database {
     }
 
     /**
-     * Updates the mapping for the node holding the database creating a new version number
+     * Updates the mapping for the node holding the database, creating a new version number.
      *
      * @param node
      * @param key
@@ -81,7 +89,7 @@ public class Database {
         if (scuttlebutt)
             update(node, key, ++n);
         else
-            update(node, key, ++clock);
+            update(node, key, CommonState.getTime());
     }
 
     /**
@@ -96,6 +104,12 @@ public class Database {
         }
     }
 
+    /**
+     * Return all version numbers in the database, including those for mappings that don't exist yet.
+     * Is used as a digest for precise reconciliation.
+     *
+     * @return
+     */
     public long[][] getVersions() {
         return version;
     }

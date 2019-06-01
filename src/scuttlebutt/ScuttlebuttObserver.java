@@ -19,7 +19,7 @@ public class ScuttlebuttObserver implements Control {
 
     private static int K;
 
-    // Holds the last time node j has updated entry (i,k)
+    // Holds the last time node i has updated entry (i,k)
     private static long times[][];
 
     protected static void setK(int k) { K = k; }
@@ -29,6 +29,11 @@ public class ScuttlebuttObserver implements Control {
         times = new long[N][K];
     }
 
+    /**
+     * At every round, it counts the metrics for the protocol's evaluation.
+     *
+     * @return
+     */
     @Override
     public boolean execute() {
         if (CommonState.getTime() == 0) {
@@ -39,21 +44,27 @@ public class ScuttlebuttObserver implements Control {
             }
             return false;
         }
+
         int countVal = 0, countEnt = 0; long maxStale = 0;
         boolean isStale[][] = new boolean[N][K];
         for (int i = 0; i < N; i++) {
             Node node = Network.get(i);
-            DbContainer scuttlebutt = (DbContainer) node.getProtocol(pid);
+            DbContainer prot1 = (DbContainer) node.getProtocol(pid);
             int n1 = (int) node.getID();
+
             for (int j = 0; j < N; j++) {
                 Node node2 = Network.get(j);
-                if (node.getID() == node2.getID()) continue;
-                DbContainer scuttlebutt2 = (DbContainer) node2.getProtocol(pid);
                 int n2 = (int) node2.getID();
+
+                if (n1 == n2) continue; // Same node, must not be compared
+
+                DbContainer prot2 = (DbContainer) node2.getProtocol(pid);
+
                 for (int k = 0; k < K; k++) {
                     // From the definition of stale entry
-                    if (scuttlebutt.db.getVersion(n1,k) != scuttlebutt2.db.getVersion(n1,k)) {
-                        maxStale = Long.max((times[n1][k] > 0 ? CommonState.getTime() - times[n1][k] : 0), maxStale);
+                    if (prot1.db.getVersion(n1,k) != prot2.db.getVersion(n1,k)) {
+                        // If the version numbers are different, (n1,k) is updated at least once and is stale at node n2
+                        maxStale = Long.max(CommonState.getTime()-times[n1][k], maxStale);
                         countEnt++;
                         if (!isStale[n1][k]) countVal++;
                         isStale[n1][k] = true;
@@ -62,7 +73,8 @@ public class ScuttlebuttObserver implements Control {
             }
         }
 
-        System.out.println(CommonState.getTime()/10000 + ", " + reconciledCount + ", " + countVal + ", " + countEnt + ", " + maxStale/10000);
+        System.out.println(CommonState.getTime()/10000 + ", " + reconciledCount + ", " + countVal + ", "
+                                + countEnt + ", " + maxStale/10000);
         reconciledCount = 0;
         avgMessageRate = 0;
         return false;
@@ -72,6 +84,12 @@ public class ScuttlebuttObserver implements Control {
         times[node][key] = CommonState.getTime();
     }
 
+    /**
+     * Time that has elapsed since (node,key) was updated
+     * @param node
+     * @param key
+     * @return
+     */
     protected static int getDelay(int node, int key) {
         return (int) ((CommonState.getTime() - times[node][key])/10000);
     }

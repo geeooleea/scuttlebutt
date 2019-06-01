@@ -1,12 +1,13 @@
 package scuttlebutt;
 
-import peersim.edsim.NextCycleEvent;
-
-public abstract class DbContainer extends NextCycleEvent {
+/**
+ * Abstract container class to allow Application classes to access a node's database knowing the
+ * underlying reconciliation mechanism.
+ */
+public abstract class DbContainer {
     protected Database db;
 
     public DbContainer(String s) {
-        super(s);
     }
 
     public Database getDb() {

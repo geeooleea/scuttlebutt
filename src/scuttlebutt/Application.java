@@ -4,9 +4,8 @@ import peersim.cdsim.CDProtocol;
 import peersim.config.Configuration;
 import peersim.core.CommonState;
 import peersim.core.Node;
-import peersim.edsim.NextCycleEvent;
 
-public class Application extends NextCycleEvent implements CDProtocol {
+public class Application implements CDProtocol {
 
     private static final int CYCLE = 10000;
 
@@ -15,7 +14,6 @@ public class Application extends NextCycleEvent implements CDProtocol {
     private static int pid;
 
     public Application(String prefix) {
-        super(prefix);
         pid = Configuration.getPid(prefix + "." + PAR_PROT);
     }
 
@@ -25,14 +23,13 @@ public class Application extends NextCycleEvent implements CDProtocol {
             Database db = ((DbContainer) node.getProtocol(pid)).db;
             int k = CommonState.r.nextInt(db.getK());
             db.update((int) node.getID(), k);
-            ScuttlebuttObserver.signalUpdate((int) node.getID(),k);
+            ScuttlebuttObserver.signalUpdate((int) node.getID(),k); // To compute maximum staleness
             // Doubled update rate
             if (CommonState.getTime() >= 25 * CYCLE && CommonState.getTime() < 75 * CYCLE) {
                 k = CommonState.r.nextInt(db.getK());
                 db.update((int) node.getID(), k);
                 ScuttlebuttObserver.signalUpdate((int) node.getID(),k);
             }
-
         }
     }
 
@@ -41,6 +38,7 @@ public class Application extends NextCycleEvent implements CDProtocol {
         Application app = null;
         try {
             app = (Application) super.clone();
+            app.pid = this.pid;
         } catch (CloneNotSupportedException ex) {}
         return app;
     }

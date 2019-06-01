@@ -9,7 +9,6 @@ import peersim.core.Network;
 import peersim.core.Node;
 import peersim.edsim.EDProtocol;
 import peersim.transport.Transport;
-
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.PriorityQueue;
@@ -33,11 +32,12 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
     protected static int MTU = Integer.MAX_VALUE;
 
     /**
-     * 0 for scuttle-depth (default), 1 for scuttle-breadth. Values for
-     * configuration file are "depth" and "breadth"
+     * 0 for scuttle-depth, 1 for scuttle-breadth. String values for
+     * configuration file are "depth" and "breadth".
      */
     private static int order;
 
+    // Database is NxK
     private static int N;
     private static int K;
 
@@ -48,15 +48,23 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
         super(prefix);
         lbID = Configuration.getPid(prefix + "." + PAR_PROT, -1);
         System.err.println("scuttlebutt.Scuttlebutt protocol says:");
+        ////// Not used /////
         if (lbID == -1) {
             System.err.println("---> No load balance protocol defined.");
         } else {
             System.err.println("---> Using custom load balance protocol.");
         }
+        /////////////////////
         MTU = Configuration.getInt(prefix + "." + PAR_MTU);
-        // Use default if value is other than "breadth"
-        order = Configuration.getString(prefix + "." + PAR_ORD, "depth").equals("breadth") ? 1 : 0;
-        System.err.println("---> Using scuttle-" + (order == 1 ? "breadth" : "depth") + " ordering");
+        String orderStr = Configuration.getString(prefix + "." + PAR_ORD);
+        if (orderStr.equals("depth")) {
+            order = 0;
+            System.err.println("---> Using scuttle-depth ordering");
+        } else if (orderStr.equals("breadth")) {
+            order = 1;
+            System.err.println("---> Using scuttle-breadth ordering");
+        }
+
         N = Network.size();
         K = Configuration.getInt(prefix + "." + PAR_K);
         db = new Database(N,K,true);
@@ -64,7 +72,7 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
     }
 
     /**
-     * Start gossiping with a peer in the overlay network
+     * Start gossiping with a randomly selected peer in the overlay network.
      * @param node
      * @param pid
      */
@@ -80,6 +88,16 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
                 send(node, peer, new Message(node, db.getDigest(), Message.ACTION.DIGEST), pid);
     }
 
+    /**
+     * Answers incoming {@link Message} instances based on their "ACTION" field.
+     * Message action DIGEST: Sends a DIGEST_RESPONSE and subsequently a DELTA_SET Message.
+     * Message action DIGEST_RESPONSE: Sends DELTA_SET.
+     * Message action DELTA_SET: Reconciles its database with the differences in the message payload.
+     *
+     * @param node
+     * @param pid
+     * @param o is processed only if o is instace of {@link Message}.
+     */
     @Override
     public void processEvent(Node node, int pid, Object o) {
         if (o instanceof Message) {
@@ -88,6 +106,7 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
                 case DIGEST: {
                     ((Transport) node.getProtocol(FastConfig.getTransport(pid))).
                             send(node, m.sender, new Message(node, db.getDigest(), Message.ACTION.DIGEST_RESPONSE), pid);
+                    // No break here, from a digest we can immediately build a delta set
                 }
                 case DIGEST_RESPONSE: {
                     DeltaSet diff = getDifference((long[]) m.payload);
@@ -150,18 +169,16 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
     }
 
     /**
-     * Implementation of the definition of scuttlebutt delta set in paragraph 3.2
-     *
+     * Retrieves all updates that are more recent than the ones in the digest.
      * @param digest
      * @return
      */
     private PriorityQueue<Delta>[] getDeltas(long[] digest) {
         PriorityQueue<Delta> deltas[] = new PriorityQueue[N];
-        DeltaComparator cmp = new DeltaComparator();
 
         // Obtain all deltas that are more recent than the peer's maximum version in the digest
         for (int node = 0; node < N; node++) {
-            deltas[node] = new PriorityQueue<>(cmp);
+            deltas[node] = new PriorityQueue<>();
             for (int key = 0; key < K; key++) {
                 long time = db.getVersion(node, key);
                 if (time > digest[node]) { // Current update at this node for (node,key) is fresher than any other at the peer
@@ -170,16 +187,6 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
             }
         }
         return deltas;
-    }
-
-    /**
-     * Sorts by increasing version number
-     */
-    private class DeltaComparator implements Comparator<Delta> {
-        @Override
-        public int compare(Delta delta, Delta t1) {
-            return (int) (delta.version - t1.version);
-        }
     }
 
     /**
@@ -192,13 +199,23 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
         }
     }
 
-    private class Delta {
+    private class Delta implements Comparable<Delta> {
         int node, key;
         long version;
         public Delta(int node, int key, long version) {
             this.node = node;
             this.key = key;
             this.version = version;
+        }
+
+        /**
+         * Sorts by increasing version number
+         * @param delta
+         * @return
+         */
+        @Override
+        public int compareTo(Delta delta) {
+            return (int)(this.version-delta.version);
         }
     }
 
