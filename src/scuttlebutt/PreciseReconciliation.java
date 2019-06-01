@@ -9,46 +9,70 @@ import peersim.core.Network;
 import peersim.core.Node;
 import peersim.edsim.EDProtocol;
 import peersim.transport.Transport;
-
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 
-public class PreciseReconciliation  extends DbContainer implements CDProtocol, EDProtocol {
-    private static final String PAR_PROT = "loadbalance";
+public class PreciseReconciliation extends DbContainer implements CDProtocol, EDProtocol {
     private static final String PAR_ORD = "order";
     private static final String PAR_K = "keys";
     private static final String PAR_MTU = "MTU";
-
+    private static final String PAR_PERC = "percent";
 
     /**
-     * Maximum size of a scuttlebutt message. If no value is specified then a
+     * Maximum size of a reconciliation message. If no value is specified then a
      * message can contain at most Integer.MAX_VALUE bytes.
      */
     protected static int MTU = Integer.MAX_VALUE;
 
     /**
-     * 0 for scuttle-depth (default), 1 for scuttle-breadth. Values for
-     * configuration file are "depth" and "breadth"
+     * 0 for precise oldest, 1 for precise newest, 2 for mixed behaviour.
+     * String values for configuration file are "oldest", "newest" and "mixed".
      */
     private static int order;
+
+    /**
+     * Defines percentage of precise-newest and -oldest behaviour.
+     * 0 means entirely precise-oldest, 100 means entirely precise-newest
+     */
+    private static int perc;
 
     private static int N;
     private static int K;
 
-    // protected Database db;
-
+    /**
+     * Retrieves information from configuration file and creates the database for the prototype
+     * @param prefix
+     */
     public PreciseReconciliation(String prefix) {
         super(prefix);
         MTU = Configuration.getInt(prefix + "." + PAR_MTU, Integer.MAX_VALUE);
-        order = Configuration.getString(prefix + "." + PAR_ORD, "newest").equals("oldest") ? 1 : 0;
-        System.err.println("---> Using precise-" + (order == 1 ? "oldest" : "newest") + " ordering");
+        String orderStr = Configuration.getString(prefix + "." + PAR_ORD);
+        if (orderStr.equals("oldest")) {
+            order = 0;
+            System.err.println("---> Using precise-oldest ordering");
+        } else if (orderStr.equals("newest")) {
+            order = 1;
+            System.err.println("---> Using precise-newest ordering");
+        } else if (orderStr.equals("mixed")) {
+            order = 2;
+            perc = Configuration.getInt(prefix + "." + PAR_PERC);
+            if (perc > 100 || perc < 0) {
+                throw new IllegalArgumentException(prefix + "." + PAR_PERC + " must be between 0 and 100");
+            }
+            System.err.println("---> Using mixed ordering, " + perc + " percent precise newest");
+        }
         N = Network.size();
         K = Configuration.getInt(prefix + "." + PAR_K);
         db = new Database(N,K,false);
         ScuttlebuttObserver.setK(K);
     }
 
+    /**
+     * Selects a random peer from the overlay and sends it a digest (versions without values) of its database.
+     * NOTE: in this case the digest corresponds with the entire information we are storing in the database.
+     * @param node
+     * @param pid
+     */
     @Override
     public void nextCycle(Node node, int pid) {
         Linkable linkable
@@ -61,13 +85,24 @@ public class PreciseReconciliation  extends DbContainer implements CDProtocol, E
                 send(node, peer, new Message(node, db.getVersions(), Message.ACTION.DIGEST), pid);
     }
 
+    /**
+     * Answers incoming {@link Message} instances based on their "ACTION" field.
+     * Message action DIGEST: Sends a DIGEST_RESPONSE and subsequently a DELTA_SET Message.
+     * Message action DIGEST_RESPONSE: Sends DELTA_SET.
+     * Message action DELTA_SET: Reconciles its database with the differences in the message payload.
+     *
+     * @param node
+     * @param pid
+     * @param o is processed only if o is instace of {@link Message}.
+     */
     @Override
     public void processEvent(Node node, int pid, Object o) {
         if (o instanceof Message) {
             Message m = (Message) o;
-            if (m.action == Message.ACTION.DIGEST)
+            if (m.action == Message.ACTION.DIGEST) {
                 ((Transport) node.getProtocol(FastConfig.getTransport(pid))).
                         send(node, m.sender, new Message(node, db.getVersions(), Message.ACTION.DIGEST_RESPONSE), pid);
+            }
             if (m.action == Message.ACTION.DIGEST || m.action == Message.ACTION.DIGEST_RESPONSE) {
                 DeltaSet diff = getDifference((long[][]) m.payload);
                 ((Transport) node.getProtocol(FastConfig.getTransport(pid))).
@@ -78,9 +113,20 @@ public class PreciseReconciliation  extends DbContainer implements CDProtocol, E
         }
     }
 
+    /**
+     * Creates the delta set for precise reconciliation.
+     * Retrieves deltas that are newer than those in the digest, sorts them accordingly to reconciliation ordering and
+     * inserts them into a {@link DeltaSet}, until either all of them have been processed or the size of the delta set
+     * equals the (current) MTU.
+     *
+     * @param digest
+     * @return
+     */
     private DeltaSet getDifference(long[][] digest) {
+        int MTU = CommonState.getTime() >= 15l*10000 ? this.MTU : Integer.MAX_VALUE;
         ArrayList<Delta> deltas = new ArrayList<>();
 
+        // Retrieve fresh deltas from DB
         for (int i=0; i<N; i++) {
             for (int j=0; j<K; j++) {
                 if (digest[i][j] < db.getVersion(i,j)) {
@@ -89,28 +135,32 @@ public class PreciseReconciliation  extends DbContainer implements CDProtocol, E
             }
         }
 
-        deltas.sort(new DeltaComparator());
-        if (order == 0) {
-            Collections.reverse(deltas);
+        Collections.sort(deltas); // Ascending order first
+        DeltaSet deltaSet = new DeltaSet(Math.min(100,MTU)); // Size is dynamic
+        if (order < 2) {
+            if (order == 0) { // Precise oldest selects the MTU oldest updates
+                Collections.reverse(deltas);
+            }
+            for (int i=0; i<MTU && i<deltas.size(); i++) {
+                deltaSet.add(deltas.get(i).node, deltas.get(i).key,deltas.get(i).version);
+            }
+        } else if (order == 2) {
+            int precNew = (int)((double)MTU*perc/100d); // Percentage of MTU used by precise oldest,
+            // If MTU is bigger than deltas.size() then all updates are selected
+            for (int i=0; i < Math.min(precNew,deltas.size()); i++) {
+                deltaSet.add(deltas.get(i).node, deltas.get(i).key,deltas.get(i).version);
+            }
+            int s = deltaSet.size;
+            for (int i=0; i<Math.min(MTU-s,deltas.size()-s); i++) {
+                Delta d = deltas.get(deltas.size()-i-1); // Access last elements
+                deltaSet.add(d.node, d.key, d.version);
+            }
         }
-        DeltaSet deltaSet = new DeltaSet(Math.min(100,MTU));
-        for (int i=0; i<MTU && i<deltas.size(); i++) {
-            deltaSet.add(deltas.get(i).node, deltas.get(i).key,deltas.get(i).version);
-        }
+
         return deltaSet;
     }
 
-    /**
-     * Sorts by increasing version number
-     */
-    private class DeltaComparator implements Comparator<Delta> {
-        @Override
-        public int compare(Delta delta, Delta t1) {
-            return (int) (delta.version - t1.version);
-        }
-    }
-
-    private class Delta {
+    private class Delta implements Comparable<Delta> {
         int node, key;
         long version;
 
@@ -119,14 +169,23 @@ public class PreciseReconciliation  extends DbContainer implements CDProtocol, E
             this.key = key;
             this.version = version;
         }
+
+        @Override
+        public int compareTo(Delta delta) {
+            return (int)(this.version-delta.version);
+        }
     }
 
+    /**
+     * Creates a new database instance for the clone.
+     * @return
+     */
     public Object clone() {
-        PreciseReconciliation sc = null;
+        PreciseReconciliation prec = null;
         try {
-            sc = (PreciseReconciliation) super.clone();
-            sc.db = new Database(N,K,false);
+            prec = (PreciseReconciliation) super.clone();
+            prec.db = new Database(N,K,false);
         } catch (CloneNotSupportedException ex) {}
-        return sc;
+        return prec;
     }
 }
