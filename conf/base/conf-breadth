@@ -2,13 +2,11 @@ SIZE 128
 KEYS 64
 MTU 100
 
-# parameters of periodic execution
 CYCLES 140
-# 1 cycle lasts 1s
 CYCLE 10000
 
-MINDELAY 0
-MAXDELAY 0
+control.shf Shuffle
+control.shf.step CYCLE
 
 random.seed 1234567890
 network.size SIZE
@@ -16,11 +14,11 @@ simulation.endtime CYCLE*CYCLES
 simulation.logtime CYCLE
 
 protocol.lnk peersim.core.IdleProtocol
-protocol.lnk.capacity SIZE-1
+protocol.lnk.capacity SIZE
 
 protocol.urt UniformRandomTransport
-protocol.urt.mindelay (CYCLE*MINDELAY)/100
-protocol.urt.maxdelay (CYCLE*MAXDELAY)/100
+protocol.urt.mindelay 0
+protocol.urt.maxdelay 0
 
 protocol.scut scuttlebutt.Scuttlebutt
 protocol.scut.linkable lnk
