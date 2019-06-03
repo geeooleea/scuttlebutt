@@ -3,22 +3,26 @@ KEYS 64
 MTU 100
 
 CYCLES 140
-CYCLE 10000
+CYCLE 1000
+
+MINDELAY 5
+MAXDELAY 10
 
 control.shf Shuffle
 control.shf.step CYCLE
+
+global.cycle CYCLE
 
 random.seed 1234567890
 network.size SIZE
 simulation.endtime CYCLE*CYCLES
 simulation.logtime CYCLE
 
-protocol.lnk peersim.core.IdleProtocol
-protocol.lnk.capacity SIZE
+protocol.lnk OracleIdleProtocol
 
 protocol.urt UniformRandomTransport
-protocol.urt.mindelay 0
-protocol.urt.maxdelay 0
+protocol.urt.mindelay (MINDELAY*CYCLE)/100
+protocol.urt.maxdelay (MAXDELAY*CYCLE)/100
 
 protocol.scut scuttlebutt.Scuttlebutt
 protocol.scut.linkable lnk
@@ -31,10 +35,6 @@ protocol.scut.step CYCLE
 protocol.app scuttlebutt.Application
 protocol.app.protocol scut
 protocol.app.step CYCLE
-
-init.rndlink WireKOut
-init.rndlink.k SIZE
-init.rndlink.protocol lnk
 
 init.sch2 CDScheduler
 init.sch2.protocol app
