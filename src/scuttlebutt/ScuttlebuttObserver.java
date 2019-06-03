@@ -19,6 +19,8 @@ public class ScuttlebuttObserver implements Control {
 
     private static int K;
 
+    private static final int CYCLE = Configuration.getInt("global.cycle");
+
     // Holds the last time node i has updated entry (i,k)
     private static long times[][];
 
@@ -73,8 +75,8 @@ public class ScuttlebuttObserver implements Control {
             }
         }
 
-        System.out.println(CommonState.getTime()/10000 + ", " + reconciledCount + ", " + countVal + ", "
-                                + countEnt + ", " + maxStale/10000);
+        System.out.println(CommonState.getTime()/CYCLE + ", " + reconciledCount + ", " + countVal + ", "
+                                + countEnt + ", " + maxStale/CYCLE);
         reconciledCount = 0;
         avgMessageRate = 0;
         return false;
@@ -91,6 +93,6 @@ public class ScuttlebuttObserver implements Control {
      * @return
      */
     protected static int getDelay(int node, int key) {
-        return (int) ((CommonState.getTime() - times[node][key])/10000);
+        return (int) ((CommonState.getTime() - times[node][key])/CYCLE);
     }
 }

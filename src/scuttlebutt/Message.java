@@ -9,25 +9,28 @@ import peersim.core.Node;
 public class Message {
     public enum ACTION {
         DIGEST,
-        DIGEST_RESPONSE,
+        DIGEST_RESPONSE, // Also contains delta set for first digest message
         DELTA_SET
     }
 
     // These are protected to simplify read access in reconciliation classes
     protected final ACTION action;
     protected final Node sender;
-    protected Object payload;
+    protected DeltaSet deltaSet;
+    protected Object digest;
 
     /**
      * Create a new gossip message.
      *
      * @param sender
-     * @param payload
+     * @param digest
+     * @param deltaSet
      * @param a
      */
-    public Message(Node sender, Object payload, ACTION a) {
+    public Message(Node sender, Object digest, DeltaSet deltaSet, ACTION a) {
         this.sender = sender;
-        this.payload = payload;
+        this.digest = digest;
+        this.deltaSet = deltaSet;
         this.action = a;
     }
 

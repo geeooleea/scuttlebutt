@@ -7,8 +7,6 @@ import peersim.core.Node;
 
 public class Application implements CDProtocol {
 
-    private static final int CYCLE = 10000;
-
     private static final String PAR_PROT = "protocol";
 
     private static int pid;
@@ -19,13 +17,14 @@ public class Application implements CDProtocol {
 
     @Override
     public void nextCycle(Node node, int i) {
-        if (CommonState.getTime() < 120 * CYCLE) {
+        if (CommonState.getTime() < 120 * Configuration.getInt("global.cycle")) {
             Database db = ((DbContainer) node.getProtocol(pid)).db;
             int k = CommonState.r.nextInt(db.getK());
             db.update((int) node.getID(), k);
             ScuttlebuttObserver.signalUpdate((int) node.getID(),k); // To compute maximum staleness
             // Doubled update rate
-            if (CommonState.getTime() >= 25 * CYCLE && CommonState.getTime() < 75 * CYCLE) {
+            if (CommonState.getTime() >= 25 * Configuration.getInt("global.cycle") &&
+                    CommonState.getTime() < 75 * Configuration.getInt("global.cycle")) {
                 k = CommonState.r.nextInt(db.getK());
                 db.update((int) node.getID(), k);
                 ScuttlebuttObserver.signalUpdate((int) node.getID(),k);

@@ -41,6 +41,8 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
     private static int N;
     private static int K;
 
+    private static final int CYCLE = Configuration.getInt("global.cycle");
+
     /**
      * @param prefix
      */
@@ -84,7 +86,7 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
         Node peer = linkable.getNeighbor(CommonState.r.nextInt(linkable.degree()));
         // Send first digest message
         ((Transport) node.getProtocol(FastConfig.getTransport(pid))).
-                send(node, peer, new Message(node, db.getDigest(), Message.ACTION.DIGEST), pid);
+                send(node, peer, new Message(node, db.getDigest(), null, Message.ACTION.DIGEST), pid);
     }
 
     /**
@@ -104,17 +106,19 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
             switch (m.action) {
                 case DIGEST: {
                     ((Transport) node.getProtocol(FastConfig.getTransport(pid))).
-                            send(node, m.sender, new Message(node, db.getDigest(), Message.ACTION.DIGEST_RESPONSE), pid);
-                    // No break here, from a digest we can immediately build a delta set
+                            send(node, m.sender, new Message(node, db.getDigest(),
+                                    getDifference((long[]) m.digest), Message.ACTION.DIGEST_RESPONSE), pid);
+                    break;
                 }
                 case DIGEST_RESPONSE: {
-                    DeltaSet diff = getDifference((long[]) m.payload);
+                    db.reconcile(m.deltaSet);
+                    DeltaSet diff = getDifference((long[]) m.digest);
                     ((Transport) node.getProtocol(FastConfig.getTransport(pid))).
-                            send(node, m.sender, new Message(node, diff, Message.ACTION.DELTA_SET), pid);
+                            send(node, m.sender, new Message(node, null, diff, Message.ACTION.DELTA_SET), pid);
                     break;
                 }
                 case DELTA_SET:
-                    db.reconcile((DeltaSet) m.payload);
+                    db.reconcile(m.deltaSet);
             }
         }
     }
@@ -126,7 +130,7 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
      */
     private DeltaSet getDifference(long[] digest) {
         // Set MTU after 15 seconds to allow the system to warm up and remove bias
-        int MTU = CommonState.getTime() >= 15l*10000 ? this.MTU : Integer.MAX_VALUE;
+        int MTU = CommonState.getTime() >= 15l*CYCLE ? this.MTU : Integer.MAX_VALUE;
         DeltaSet deltaSet = new DeltaSet(Integer.min(MTU,100));
         PriorityQueue<Delta> deltas[] = getDeltas(digest);
 
@@ -137,7 +141,7 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
             next[i] = (int) Network.get(i).getID();
             updates += deltas[i].size();
         }
-
+        
         if (order == 1) { // Scuttle-breadth
             boolean empty = false;
             while (!empty && deltaSet.size < MTU) {

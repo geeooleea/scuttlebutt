@@ -39,6 +39,8 @@ public class PreciseReconciliation extends DbContainer implements CDProtocol, ED
     private static int N;
     private static int K;
 
+    private static final int CYCLE = Configuration.getInt("global.cycle");
+
     /**
      * Retrieves information from configuration file and creates the database for the prototype
      * @param prefix
@@ -80,7 +82,7 @@ public class PreciseReconciliation extends DbContainer implements CDProtocol, ED
         Node peer = linkable.getNeighbor(CommonState.r.nextInt(linkable.degree()));
         // Send first digest message
         ((Transport) node.getProtocol(FastConfig.getTransport(pid))).
-                send(node, peer, new Message(node, db.getVersions(), Message.ACTION.DIGEST), pid);
+                send(node, peer, new Message(node, db.getVersions(), null, Message.ACTION.DIGEST), pid);
     }
 
     /**
@@ -99,15 +101,17 @@ public class PreciseReconciliation extends DbContainer implements CDProtocol, ED
             Message m = (Message) o;
             if (m.action == Message.ACTION.DIGEST) {
                 ((Transport) node.getProtocol(FastConfig.getTransport(pid))).
-                        send(node, m.sender, new Message(node, db.getVersions(), Message.ACTION.DIGEST_RESPONSE), pid);
+                        send(node, m.sender, new Message(node, db.getVersions(),
+                                getDifference((long[][]) m.digest), Message.ACTION.DIGEST_RESPONSE), pid);
             }
-            if (m.action == Message.ACTION.DIGEST || m.action == Message.ACTION.DIGEST_RESPONSE) {
-                DeltaSet diff = getDifference((long[][]) m.payload);
+            if (m.action == Message.ACTION.DIGEST_RESPONSE) {
+                db.reconcile(m.deltaSet);
+                DeltaSet diff = getDifference((long[][]) m.digest);
                 ((Transport) node.getProtocol(FastConfig.getTransport(pid))).
-                        send(node, m.sender, new Message(node, diff, Message.ACTION.DELTA_SET), pid);
+                        send(node, m.sender, new Message(node, null, diff, Message.ACTION.DELTA_SET), pid);
             }
             if (m.action == Message.ACTION.DELTA_SET)
-                db.reconcile((DeltaSet) m.payload);
+                db.reconcile(m.deltaSet);
         }
     }
 
@@ -121,7 +125,7 @@ public class PreciseReconciliation extends DbContainer implements CDProtocol, ED
      * @return
      */
     private DeltaSet getDifference(long[][] digest) {
-        int MTU = CommonState.getTime() >= 15l*10000 ? this.MTU : Integer.MAX_VALUE;
+        int MTU = CommonState.getTime() >= 15l*CYCLE ? this.MTU : Integer.MAX_VALUE;
         ArrayList<Delta> deltas = new ArrayList<>();
 
         // Retrieve fresh deltas from DB

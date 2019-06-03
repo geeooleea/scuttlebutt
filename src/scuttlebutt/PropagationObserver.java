@@ -8,7 +8,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 public class PropagationObserver implements Control {
-    public static final int TIME = (int) CommonState.getEndTime()/10000 + 1;
+    private static final int CYCLE = Configuration.getInt("global.cycle");
+    public static final int TIME = (int) CommonState.getEndTime()/CYCLE + 1;
     private static final String PAR_FILE = "file";
 
     private static int delayCount[] = new int[TIME];
