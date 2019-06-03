@@ -77,9 +77,7 @@ public class PreciseReconciliation extends DbContainer implements CDProtocol, ED
     public void nextCycle(Node node, int pid) {
         Linkable linkable
                 = (Linkable) node.getProtocol(FastConfig.getLinkable(pid));
-        // Obtain peer to initiate gossiping
-        Node peer = linkable.getNeighbor(
-                CommonState.r.nextInt(linkable.degree()));
+        Node peer = linkable.getNeighbor(CommonState.r.nextInt(linkable.degree()));
         // Send first digest message
         ((Transport) node.getProtocol(FastConfig.getTransport(pid))).
                 send(node, peer, new Message(node, db.getVersions(), Message.ACTION.DIGEST), pid);
@@ -135,12 +133,12 @@ public class PreciseReconciliation extends DbContainer implements CDProtocol, ED
             }
         }
 
-        Collections.sort(deltas); // Ascending order first
+        Collections.sort(deltas);
+        if (order == 0) {
+            Collections.reverse(deltas);
+        }
         DeltaSet deltaSet = new DeltaSet(Math.min(100,MTU)); // Size is dynamic
         if (order < 2) {
-            if (order == 0) { // Precise oldest selects the MTU oldest updates
-                Collections.reverse(deltas);
-            }
             for (int i=0; i<MTU && i<deltas.size(); i++) {
                 deltaSet.add(deltas.get(i).node, deltas.get(i).key,deltas.get(i).version);
             }
@@ -170,9 +168,14 @@ public class PreciseReconciliation extends DbContainer implements CDProtocol, ED
             this.version = version;
         }
 
+        /**
+         * Sort by higher version number first
+         * @param delta
+         * @return
+         */
         @Override
         public int compareTo(Delta delta) {
-            return (int)(this.version-delta.version);
+            return (int)(delta.version-this.version);
         }
     }
 

@@ -29,7 +29,7 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
      * Maximum size of a scuttlebutt message. If no value is specified then a
      * message can contain at most Integer.MAX_VALUE bytes.
      */
-    protected static int MTU = Integer.MAX_VALUE;
+    protected int MTU = Integer.MAX_VALUE;
 
     /**
      * 0 for scuttle-depth, 1 for scuttle-breadth. String values for
@@ -81,8 +81,7 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
         Linkable linkable
                 = (Linkable) node.getProtocol(FastConfig.getLinkable(pid));
         // Obtain peer to initiate gossiping
-        Node peer = linkable.getNeighbor(
-                CommonState.r.nextInt(linkable.degree()));
+        Node peer = linkable.getNeighbor(CommonState.r.nextInt(linkable.degree()));
         // Send first digest message
         ((Transport) node.getProtocol(FastConfig.getTransport(pid))).
                 send(node, peer, new Message(node, db.getDigest(), Message.ACTION.DIGEST), pid);
