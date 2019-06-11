@@ -5,8 +5,8 @@ MTU 100
 CYCLES 140
 CYCLE 1000
 
-MINDELAY 5
-MAXDELAY 10
+MINDELAY 1
+MAXDELAY 5
 
 control.shf Shuffle
 control.shf.step CYCLE
