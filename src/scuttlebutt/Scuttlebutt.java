@@ -29,13 +29,17 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
      * Maximum size of a scuttlebutt message. If no value is specified then a
      * message can contain at most Integer.MAX_VALUE bytes.
      */
-    protected int MTU = Integer.MAX_VALUE;
+    protected static int MTU;
 
     /**
-     * 0 for scuttle-depth, 1 for scuttle-breadth. String values for
-     * configuration file are "depth" and "breadth".
+     * 0 for scuttle-depth, 1 for scuttle-breadth, 2 for mixed-scuttle. String values for
+     * configuration file are "depth", "breadth", "mixed".
      */
     private static int order;
+
+    // amount of deltas to be included from every queue in precise mixed
+    // Proportion of queue size
+    private static double perc;
 
     // Database is NxK
     private static int N;
@@ -65,6 +69,10 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
         } else if (orderStr.equals("breadth")) {
             order = 1;
             System.err.println("---> Using scuttle-breadth ordering");
+        } else if (orderStr.equals("mixed")) {
+            order = 2;
+            System.err.println("---> Using mixed ordering");
+            perc = Configuration.getDouble(prefix + "." + "percent");
         }
 
         N = Network.size();
@@ -111,10 +119,10 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
                     break;
                 }
                 case DIGEST_RESPONSE: {
-                    db.reconcile(m.deltaSet);
                     DeltaSet diff = getDifference((long[]) m.digest);
                     ((Transport) node.getProtocol(FastConfig.getTransport(pid))).
                             send(node, m.sender, new Message(node, null, diff, Message.ACTION.DELTA_SET), pid);
+                    db.reconcile(m.deltaSet);
                     break;
                 }
                 case DELTA_SET:
@@ -130,7 +138,7 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
      */
     private DeltaSet getDifference(long[] digest) {
         // Set MTU after 15 seconds to allow the system to warm up and remove bias
-        int MTU = CommonState.getTime() >= 15l*CYCLE ? this.MTU : Integer.MAX_VALUE;
+        int MTU = CommonState.getTime() >= 15l*CYCLE ? Scuttlebutt.MTU : Integer.MAX_VALUE;
         DeltaSet deltaSet = new DeltaSet(Integer.min(MTU,100));
         PriorityQueue<Delta> deltas[] = getDeltas(digest);
 
@@ -154,12 +162,23 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
                     }
                 }
             }
-        } else { // Scuttle depth
+        } else {
             Arrays.sort(deltas, new DeltaQueueComparator());
-            for (int i=0; i<N && deltaSet.size < MTU; i++) {
-                while (!deltas[i].isEmpty() && deltaSet.size < MTU) {
-                    Delta d = deltas[i].poll();
-                    deltaSet.add(d.node,d.key,d.version);
+            if (order == 2) {
+                for (int i=0; i<N && deltaSet.size < MTU; i++) {
+                    int size = (int)(deltas[i].size()*perc);
+                    for (int j = 0; j<size && deltaSet.size < MTU; j++) {
+                        Delta d = deltas[i].poll();
+                        deltaSet.add(d.node, d.key, d.version);
+                    }
+                }
+            }
+            if (order == 0 || deltaSet.size < MTU) {
+                for (int i=0; i<N && deltaSet.size < MTU; i++) {
+                    while (!deltas[i].isEmpty() && deltaSet.size < MTU) {
+                        Delta d = deltas[i].poll();
+                        deltaSet.add(d.node, d.key, d.version);
+                    }
                 }
             }
         }

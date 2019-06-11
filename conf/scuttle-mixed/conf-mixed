@@ -1,0 +1,54 @@
+SIZE 128
+KEYS 64
+MTU 100
+
+CYCLES 140
+CYCLE 1000
+
+MINDELAY 1
+MAXDELAY 5
+
+control.shf Shuffle
+control.shf.step CYCLE
+
+global.cycle CYCLE
+
+random.seed 1234567890
+network.size SIZE
+simulation.endtime CYCLE*CYCLES
+simulation.logtime CYCLE
+
+protocol.lnk OracleIdleProtocol
+
+protocol.urt UniformRandomTransport
+protocol.urt.mindelay (MINDELAY*CYCLE)/100
+protocol.urt.maxdelay (MAXDELAY*CYCLE)/100
+
+protocol.scut scuttlebutt.Scuttlebutt
+protocol.scut.linkable lnk
+protocol.scut.transport urt
+protocol.scut.order mixed
+protocol.scut.percent 0.1
+protocol.scut.MTU MTU
+protocol.scut.keys KEYS
+protocol.scut.step CYCLE
+
+protocol.app scuttlebutt.Application
+protocol.app.protocol scut
+protocol.app.step CYCLE
+
+init.sch2 CDScheduler
+init.sch2.protocol app
+init.sch2.randstart
+
+init.sch CDScheduler
+init.sch.protocol scut
+init.sch.randstart
+
+control.so scuttlebutt.ScuttlebuttObserver
+control.so.protocol scut
+control.so.step CYCLE
+
+control.po scuttlebutt.PropagationObserver
+control.po.step CYCLE*CYCLES-1
+control.po.file res/scuttle-mixed/scuttle-mixed-delay
