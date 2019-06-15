@@ -11,6 +11,10 @@ public class Application implements CDProtocol {
 
     private static int pid;
 
+    private static final int CYCLE = Configuration.getInt("global.cycle");
+    private static final int DOUBLE_RATE_TIME = Configuration.getInt("global.updateDouble");
+    private static final int RESTORE_RATE_TIME = Configuration.getInt("global.updateRestore");
+
     public Application(String prefix) {
         pid = Configuration.getPid(prefix + "." + PAR_PROT);
     }
@@ -23,8 +27,8 @@ public class Application implements CDProtocol {
             db.update((int) node.getID(), k);
             ScuttlebuttObserver.signalUpdate((int) node.getID(),k); // To compute maximum staleness
             // Doubled update rate
-            if (CommonState.getTime() >= 25 * Configuration.getInt("global.cycle") &&
-                    CommonState.getTime() < 75 * Configuration.getInt("global.cycle")) {
+            if (CommonState.getTime() >= DOUBLE_RATE_TIME * CYCLE  &&
+                    CommonState.getTime() < RESTORE_RATE_TIME * CYCLE) {
                 k = CommonState.r.nextInt(db.getK());
                 db.update((int) node.getID(), k);
                 ScuttlebuttObserver.signalUpdate((int) node.getID(),k);

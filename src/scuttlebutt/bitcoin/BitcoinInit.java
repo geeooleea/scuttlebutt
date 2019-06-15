@@ -14,6 +14,8 @@ public class BitcoinInit implements Control {
     private static final String PAR_PROT = "protocol";
     private static final String PAR_FILE = "file";
 
+    private final static int CYCLE = Configuration.getInt("global.cycle");
+
     private int pid;
     private String filename;
 
@@ -32,7 +34,7 @@ public class BitcoinInit implements Control {
                 try {
                     delay = Integer.parseInt(line);
                     if (delay >= 0)
-                        EDSimulator.add(delay*10000,null, Network.get(CommonState.r.nextInt(Network.size())),pid);
+                        EDSimulator.add(delay*CYCLE,null, Network.get(CommonState.r.nextInt(Network.size())),pid);
                     else
                         throw new RuntimeException(line + " is not a positive delay");
                 } catch (NumberFormatException ex) {

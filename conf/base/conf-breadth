@@ -12,6 +12,9 @@ control.shf Shuffle
 control.shf.step CYCLE
 
 global.cycle CYCLE
+global.mtuStart 15
+global.updateDouble 25
+global.updateRestore 75
 
 random.seed 1234567890
 network.size SIZE

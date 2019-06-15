@@ -40,6 +40,7 @@ public class PreciseReconciliation extends DbContainer implements CDProtocol, ED
     private static int K;
 
     private static final int CYCLE = Configuration.getInt("global.cycle");
+    private static final int MTU_TIME = Configuration.getInt("global.mtuStart");
 
     /**
      * Retrieves information from configuration file and creates the database for the prototype
@@ -105,10 +106,10 @@ public class PreciseReconciliation extends DbContainer implements CDProtocol, ED
                                 getDifference((long[][]) m.digest), Message.ACTION.DIGEST_RESPONSE), pid);
             }
             if (m.action == Message.ACTION.DIGEST_RESPONSE) {
-                db.reconcile(m.deltaSet);
                 DeltaSet diff = getDifference((long[][]) m.digest);
                 ((Transport) node.getProtocol(FastConfig.getTransport(pid))).
                         send(node, m.sender, new Message(node, null, diff, Message.ACTION.DELTA_SET), pid);
+                db.reconcile(m.deltaSet);
             }
             if (m.action == Message.ACTION.DELTA_SET)
                 db.reconcile(m.deltaSet);
@@ -125,7 +126,7 @@ public class PreciseReconciliation extends DbContainer implements CDProtocol, ED
      * @return
      */
     private DeltaSet getDifference(long[][] digest) {
-        int MTU = CommonState.getTime() >= 15l*CYCLE ? this.MTU : Integer.MAX_VALUE;
+        int MTU = CommonState.getTime() >= MTU_TIME*CYCLE ? this.MTU : Integer.MAX_VALUE;
         ArrayList<Delta> deltas = new ArrayList<>();
 
         // Retrieve fresh deltas from DB

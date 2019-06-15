@@ -20,7 +20,7 @@ public class BitcoinApp implements EDProtocol {
     @Override
     public void processEvent(Node node, int i, Object event) {
         Database db = ((DbContainer)node.getProtocol(pid)).getDb();
-        db.update((int) node.getID(), CommonState.r.nextInt(Database.getK()));
+        db.update((int) node.getID(), CommonState.r.nextInt(db.getK()));
     }
 
     @Override

@@ -46,6 +46,7 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
     private static int K;
 
     private static final int CYCLE = Configuration.getInt("global.cycle");
+    private static final int MTU_TIME = Configuration.getInt("global.mtuStart");
 
     /**
      * @param prefix
@@ -138,7 +139,7 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
      */
     private DeltaSet getDifference(long[] digest) {
         // Set MTU after 15 seconds to allow the system to warm up and remove bias
-        int MTU = CommonState.getTime() >= 15l*CYCLE ? Scuttlebutt.MTU : Integer.MAX_VALUE;
+        int MTU = CommonState.getTime() >= MTU_TIME*CYCLE ? Scuttlebutt.MTU : Integer.MAX_VALUE;
         DeltaSet deltaSet = new DeltaSet(Integer.min(MTU,100));
         PriorityQueue<Delta> deltas[] = getDeltas(digest);
 

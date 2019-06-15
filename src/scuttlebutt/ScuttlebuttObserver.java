@@ -75,7 +75,7 @@ public class ScuttlebuttObserver implements Control {
             }
         }
 
-        System.out.println(CommonState.getTime()/CYCLE + ", " + reconciledCount + ", " + countVal + ", "
+        System.out.println(CommonState.getTime()/CYCLE + ", " + reconciledCount/(2*N) + ", " + countVal + ", "
                                 + countEnt + ", " + maxStale/CYCLE);
         reconciledCount = 0;
         avgMessageRate = 0;

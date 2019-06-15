@@ -1,5 +1,6 @@
 package scuttlebutt;
 
+import peersim.config.Configuration;
 import peersim.core.CommonState;
 
 /**
@@ -14,6 +15,7 @@ public class Database {
     private long n = 0;
     private boolean scuttlebutt;
     protected long self;
+    private static final int CYCLE = Configuration.getInt("global.cycle");
 
     /**
      * Creates a database given its size. The resulting database is a table of size N*K.

@@ -12,6 +12,9 @@ control.shf Shuffle
 control.shf.step CYCLE
 
 global.cycle CYCLE
+global.mtuStart 15
+global.updateDouble 25
+global.updateRestore 75
 
 random.seed 1234567890
 network.size SIZE
@@ -38,7 +41,6 @@ protocol.app.step CYCLE
 
 init.sch CDScheduler
 init.sch.protocol prec
-# simulate lack of synchronized clock
 init.sch.randstart
 
 init.sch2 CDScheduler
