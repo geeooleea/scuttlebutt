@@ -138,6 +138,11 @@ public class PreciseReconciliation extends DbContainer implements CDProtocol, ED
             }
         }
 
+        ScuttlebuttObserver.avgDifference += deltas.size();
+        ScuttlebuttObserver.maxDifference = Math.max(ScuttlebuttObserver.maxDifference, deltas.size());
+        ScuttlebuttObserver.minDifference = Math.min(ScuttlebuttObserver.minDifference, deltas.size());
+
+
         Collections.sort(deltas);
         if (order == 0) {
             Collections.reverse(deltas);

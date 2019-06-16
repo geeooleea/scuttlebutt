@@ -150,7 +150,11 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
             next[i] = (int) Network.get(i).getID();
             updates += deltas[i].size();
         }
-        
+
+        ScuttlebuttObserver.avgDifference += updates;
+        ScuttlebuttObserver.maxDifference = Math.max(ScuttlebuttObserver.maxDifference, updates);
+        ScuttlebuttObserver.minDifference = Math.min(ScuttlebuttObserver.minDifference, updates);
+
         if (order == 1) { // Scuttle-breadth
             boolean empty = false;
             while (!empty && deltaSet.size < MTU) {
@@ -185,7 +189,7 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
         }
 
         if (updates > 0) {
-            ScuttlebuttObserver.avgMessageRate = (ScuttlebuttObserver.avgMessageRate + ((double)deltaSet.size / updates)) / 2;
+            ScuttlebuttObserver.avgMessageSize += deltaSet.size;
         }
 
         return deltaSet;

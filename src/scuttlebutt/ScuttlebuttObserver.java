@@ -11,7 +11,10 @@ public class ScuttlebuttObserver implements Control {
     private static final String PAR_PROT = "protocol";
 
     protected static int reconciledCount = 0;
-    protected static double avgMessageRate = 0;
+    protected static double avgMessageSize = 0;
+    protected static long avgDifference = 0;
+    protected static long maxDifference = 0;
+    protected static long minDifference = Long.MAX_VALUE;
 
     private final int pid;
 
@@ -39,7 +42,7 @@ public class ScuttlebuttObserver implements Control {
     @Override
     public boolean execute() {
         if (CommonState.getTime() == 0) {
-            System.out.println("t,reconciled,values,mappings,staleness");
+            System.out.println("t,reconciled,values,mappings,staleness,differences, maxdiff");
             for (int i=0; i<N; i++) {
                 Node node = Network.get(i);
                 ((DbContainer)node.getProtocol(pid)).db.self = node.getID();
@@ -53,7 +56,6 @@ public class ScuttlebuttObserver implements Control {
             Node node = Network.get(i);
             DbContainer prot1 = (DbContainer) node.getProtocol(pid);
             int n1 = (int) node.getID();
-
             for (int j = 0; j < N; j++) {
                 Node node2 = Network.get(j);
                 int n2 = (int) node2.getID();
@@ -76,9 +78,12 @@ public class ScuttlebuttObserver implements Control {
         }
 
         System.out.println(CommonState.getTime()/CYCLE + ", " + reconciledCount/(2*N) + ", " + countVal + ", "
-                                + countEnt + ", " + maxStale/CYCLE);
+                                + (double)countEnt/N + ", " + maxStale/CYCLE + ", " + avgDifference/(2*N) + ", " + maxDifference + ", " + minDifference);
         reconciledCount = 0;
-        avgMessageRate = 0;
+        avgMessageSize = 0;
+        avgDifference = 0;
+        maxDifference = 0;
+        minDifference = Long.MAX_VALUE;
         return false;
     }
 

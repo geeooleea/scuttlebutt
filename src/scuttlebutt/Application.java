@@ -21,14 +21,14 @@ public class Application implements CDProtocol {
 
     @Override
     public void nextCycle(Node node, int i) {
-        if (CommonState.getTime() < 120 * Configuration.getInt("global.cycle")) {
+        long t = CommonState.getTime();
+        if (t < 120 * CYCLE) {
             Database db = ((DbContainer) node.getProtocol(pid)).db;
             int k = CommonState.r.nextInt(db.getK());
             db.update((int) node.getID(), k);
             ScuttlebuttObserver.signalUpdate((int) node.getID(),k); // To compute maximum staleness
             // Doubled update rate
-            if (CommonState.getTime() >= DOUBLE_RATE_TIME * CYCLE  &&
-                    CommonState.getTime() < RESTORE_RATE_TIME * CYCLE) {
+            if (t >= DOUBLE_RATE_TIME * CYCLE  && t < RESTORE_RATE_TIME * CYCLE) {
                 k = CommonState.r.nextInt(db.getK());
                 db.update((int) node.getID(), k);
                 ScuttlebuttObserver.signalUpdate((int) node.getID(),k);
@@ -41,7 +41,6 @@ public class Application implements CDProtocol {
         Application app = null;
         try {
             app = (Application) super.clone();
-            app.pid = this.pid;
         } catch (CloneNotSupportedException ex) {}
         return app;
     }
