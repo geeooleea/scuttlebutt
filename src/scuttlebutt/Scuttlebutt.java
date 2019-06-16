@@ -39,7 +39,7 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
 
     // amount of deltas to be included from every queue in precise mixed
     // Proportion of queue size
-    private static double perc;
+    private static int perc;
 
     // Database is NxK
     private static int N;
@@ -73,7 +73,7 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
         } else if (orderStr.equals("mixed")) {
             order = 2;
             System.err.println("---> Using mixed ordering");
-            perc = Configuration.getDouble(prefix + "." + "percent");
+            perc = Configuration.getInt(prefix + "." + "percent");
         }
 
         N = Network.size();
@@ -170,9 +170,9 @@ public class Scuttlebutt extends DbContainer implements CDProtocol, EDProtocol  
         } else {
             Arrays.sort(deltas, new DeltaQueueComparator());
             if (order == 2) {
-                for (int i=0; i<N && deltaSet.size < MTU; i++) {
-                    int size = (int)(deltas[i].size()*perc);
-                    for (int j = 0; j<size && deltaSet.size < MTU; j++) {
+                for (int i = 0; i < N && deltaSet.size < MTU; i++) {
+                    int size = (int) (deltas[i].size() * (double)perc/100D);
+                    for (int j = 0; j < size && deltaSet.size < MTU; j++) {
                         Delta d = deltas[i].poll();
                         deltaSet.add(d.node, d.key, d.version);
                     }

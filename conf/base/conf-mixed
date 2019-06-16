@@ -30,7 +30,8 @@ protocol.urt.maxdelay (MAXDELAY*CYCLE)/100
 protocol.scut scuttlebutt.Scuttlebutt
 protocol.scut.linkable lnk
 protocol.scut.transport urt
-protocol.scut.order depth
+protocol.scut.order mixed
+protocol.scut.percent 20
 protocol.scut.MTU MTU
 protocol.scut.keys KEYS
 protocol.scut.step CYCLE
@@ -54,4 +55,4 @@ control.so.step CYCLE
 
 control.po scuttlebutt.PropagationObserver
 control.po.step CYCLE*CYCLES-1
-control.po.file res/base/scuttle-depth-delay
+control.po.file res/scuttle-mixed/scuttle-mixed-delay

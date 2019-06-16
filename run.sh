@@ -10,3 +10,5 @@ java -cp "lib/peersim-1.0.5.jar:lib/jep-2.3.0.jar:lib/djep-1.0.0.jar:scuttlebutt
 java -cp "lib/peersim-1.0.5.jar:lib/jep-2.3.0.jar:lib/djep-1.0.0.jar:scuttlebutt.jar" peersim.Simulator $1/conf-precise-oldest > $2/precise-oldest 
 
 java -cp "lib/peersim-1.0.5.jar:lib/jep-2.3.0.jar:lib/djep-1.0.0.jar:scuttlebutt.jar" peersim.Simulator $1/conf-precise-newest > $2/precise-newest
+
+java -cp "lib/peersim-1.0.5.jar:lib/jep-2.3.0.jar:lib/djep-1.0.0.jar:scuttlebutt.jar" peersim.Simulator $1/conf-mixed > $2/scuttle-mixed

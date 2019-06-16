@@ -12,6 +12,9 @@ control.shf Shuffle
 control.shf.step CYCLE
 
 global.cycle CYCLE
+global.mtuStart 15
+global.updateDouble 25
+global.updateRestore 75
 
 random.seed 1234567890
 network.size SIZE
@@ -27,14 +30,14 @@ protocol.urt.maxdelay (MAXDELAY*CYCLE)/100
 protocol.scut scuttlebutt.Scuttlebutt
 protocol.scut.linkable lnk
 protocol.scut.transport urt
-protocol.scut.order mixed
-protocol.scut.percent 0.1
+protocol.scut.order depth
 protocol.scut.MTU MTU
 protocol.scut.keys KEYS
 protocol.scut.step CYCLE
 
 protocol.app scuttlebutt.Application
 protocol.app.protocol scut
+protocol.app.percent 100
 protocol.app.step CYCLE
 
 init.sch2 CDScheduler
@@ -51,4 +54,4 @@ control.so.step CYCLE
 
 control.po scuttlebutt.PropagationObserver
 control.po.step CYCLE*CYCLES-1
-control.po.file res/scuttle-mixed/scuttle-mixed-delay
+control.po.file res/base/scuttle-depth-delay
